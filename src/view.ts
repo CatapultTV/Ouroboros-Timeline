@@ -135,7 +135,7 @@ export class EvraView extends TextFileView {
 		this.updateUndo();
 	}
 
-	/** Shown instead of the timeline for a file Evra can't read: not JSON, or (with a reason) one it mustn't open. */
+	/** Shown instead of the timeline for a file Ouroboros can't read: not JSON, or (with a reason) one it mustn't open. */
 	private showError(reason: string | null) {
 		this.timeline?.destroy();
 		this.timeline = null;
@@ -143,7 +143,7 @@ export class EvraView extends TextFileView {
 		this.contentEl.addClass('evra-error');
 		if (reason) {
 			this.contentEl.createEl('p', { text: `This timeline file can’t be opened here. ${reason}` });
-			this.contentEl.createEl('p', { text: 'It has been left untouched: Evra won’t change it, or save over it.' });
+			this.contentEl.createEl('p', { text: 'It has been left untouched: Ouroboros won’t change it, or save over it.' });
 		} else {
 			this.contentEl.createEl('p', { text: 'This timeline file couldn’t be read. It isn’t valid JSON, so it has been left untouched.' });
 			this.contentEl.createEl('p', { text: 'Open it in another editor to fix it, or restore it from a backup or the file recovery core plugin.' });
@@ -392,11 +392,11 @@ export class EvraView extends TextFileView {
 			todo.push([file, props]);
 		}
 		// Several notes at a time: one after another, turning sync on for a few dozen notes took seconds. Each write is
-		// recorded as Evra's own before it starts, so its metadata change can't be taken for an edit in the note.
+		// recorded as Ouroboros's own before it starts, so its metadata change can't be taken for an edit in the note.
 		const write = async ([file, props]: (typeof writes)[number]) => {
 			this.ownWrites.set(file.path, props); shared.set(file.path, { view: this, props });
 			try { await this.app.fileManager.processFrontMatter(file, (m: Record<string, unknown>) => { applyProps(m, props); }); }
-			catch (err) { this.ownWrites.delete(file.path); shared.delete(file.path); console.error('Evra: couldn’t update the properties of', file.path, err); }
+			catch (err) { this.ownWrites.delete(file.path); shared.delete(file.path); console.error('Ouroboros: couldn’t update the properties of', file.path, err); }
 		};
 		for (let i = 0; i < todo.length; i += 16) await Promise.all(todo.slice(i, i + 16).map(write));
 		const written = liveFields(doc).map((x) => x[1]);
@@ -408,7 +408,7 @@ export class EvraView extends TextFileView {
 
 	private async stripSyncedProps(doc: EvraDoc): Promise<number> {
 		const sy = doc.opts.sync;
-		const keys = new Set([...(sy.written || []), ...liveFields(doc).map((x) => x[1])].filter(Boolean)); // only properties Evra writes, never ones it merely could
+		const keys = new Set([...(sy.written || []), ...liveFields(doc).map((x) => x[1])].filter(Boolean)); // only properties Ouroboros writes, never ones it merely could
 		const paths = new Set(sy.notes || []);
 		doc.events.forEach((e) => { const f = e.file && this.resolve(e.file); if (f) paths.add(f.path); });
 		let n = 0;
@@ -416,7 +416,7 @@ export class EvraView extends TextFileView {
 			const f = this.app.vault.getFileByPath(p), fm = f && (this.app.metadataCache.getFileCache(f)?.frontmatter as Record<string, unknown> | undefined);
 			if (!f || !fm || ![...keys].some((k) => k in fm)) continue;
 			try { await this.app.fileManager.processFrontMatter(f, (m: Record<string, unknown>) => { keys.forEach((k) => delete m[k]); }); n++; }
-			catch (err) { console.error('Evra: couldn’t update the properties of', f.path, err); }
+			catch (err) { console.error('Ouroboros: couldn’t update the properties of', f.path, err); }
 		}
 		sy.written = []; sy.notes = [];
 		this.requestSave();
@@ -427,7 +427,7 @@ export class EvraView extends TextFileView {
 	noteChanged(file: TFile) {
 		const ev = this.cardFor(file);
 		if (!ev) return;
-		// Evra's own property writes come back as metadata changes a moment later, by which time the card may have
+		// Ouroboros's own property writes come back as metadata changes a moment later, by which time the card may have
 		// moved again: those must not move it back
 		const own = this.ownWrites.get(file.path), fm = this.app.metadataCache.getFileCache(file)?.frontmatter as Record<string, unknown> | undefined;
 		if (own && !needsWrite(fm, own)) { this.timeline.notesChanged(); return; }

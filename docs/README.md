@@ -1,6 +1,6 @@
-# The Evra manual
+# The Ouroboros Timelines manual
 
-Evra Timelines puts worldbuilding timelines in Obsidian: a calendar of your own, eras nested as deep as you like,
+Ouroboros Timelines puts worldbuilding timelines in Obsidian: a calendar of your own, eras nested as deep as you like,
 stories drawn as threads beside the line, and cards linked to your notes. This manual covers everything it does.
 
 New here? Read [Installation](installation.md), then [Getting started](getting-started.md). If something goes wrong,

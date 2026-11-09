@@ -1,10 +1,9 @@
 {
 	"id": "evra",
-	"name": "Evra Timelines",
-	"version": "1.0.8",
+	"name": "Ouroboros Timelines",
+	"version": "0.1.0",
 	"minAppVersion": "1.6.0",
-	"description": "Worldbuilding timelines with custom calendars, nested eras, story threads and linked notes.",
-	"author": "Caleb Smith",
-	"authorUrl": "https://calebmsmith.com",
+	"description": "Worldbuilding timelines with custom calendars, nested eras, story threads and linked notes. Existing Evra .evra files remain fully supported.",
+	"author": "Fatin Hossain",
 	"isDesktopOnly": false
 }

@@ -1,8 +1,8 @@
 /*
- * Evra: worldbuilding timelines.
+ * Ouroboros Timelines: worldbuilding timelines.
  * Everything is scoped to .evra-view (the timeline) and .evra-embed (timelines in notes).
  * Colors and fonts come from the Obsidian theme through the --evra-* variables below,
- * so themes and snippets can restyle Evra by overriding those.
+ * so themes and snippets can restyle Ouroboros by overriding those.
  */
 
 .evra-view,

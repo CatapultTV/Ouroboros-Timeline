@@ -28,7 +28,7 @@ const PITCH = 'Built for the worlds you make up.';
 /** The banner as a page, `w`×`h` CSS pixels; `radius` 0 for the cut that fills its frame (the social preview). */
 const page = ({ w = 1280, h = 640, radius = 32 }) => `<!doctype html>
 <meta charset="utf-8">
-<title>Evra Timelines for Obsidian</title>
+<title>Ouroboros Timelines for Obsidian</title>
 <style>
 	@font-face { font-family: "Inter"; font-weight: 100 900; font-style: normal; font-display: block; src: url("${url('fonts', 'Inter-latin-variable.woff2')}") format("woff2"); }
 	html, body { margin: 0; background: transparent; }
@@ -49,7 +49,7 @@ const page = ({ w = 1280, h = 640, radius = 32 }) => `<!doctype html>
 <div class="panel">
 	<div class="words">
 		${svg('class="mark" ', HEAVY)}
-		<h1 class="name">Evra</h1>
+		<h1 class="name">Ouroboros</h1>
 		<p class="for">Timelines for Obsidian</p>
 		<p class="pitch">${PITCH}</p>
 	</div>

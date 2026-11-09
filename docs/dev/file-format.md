@@ -1,6 +1,8 @@
-# The .evra file format (version 1)
+# The Evra `.evra` file format (version 1)
 
-A timeline is a single UTF-8 JSON file with the `.evra` extension, indented with tabs. It is meant to be readable, diffable and safe to edit by hand. Evra fills in anything missing when it opens a file. If a file isn't valid JSON, Evra shows a message and leaves the file untouched.
+Ouroboros Timelines currently uses the existing Evra format unchanged. The plugin ID remains `evra` for compatibility, and no automatic conversion to a future OB format is performed.
+
+A timeline is a single UTF-8 JSON file with the `.evra` extension, indented with tabs. It is meant to be readable, diffable and safe to edit by hand. Ouroboros fills in anything missing when it opens a file. If a file isn't valid JSON, Ouroboros shows a message and leaves the file untouched.
 
 ## Dates
 

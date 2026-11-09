@@ -312,13 +312,13 @@ test('N21 folder menu New timeline, repeat names, sample twice, save as note', a
 	t.ok(await p.ev(`!!app.vault.getAbstractFileByPath('Untitled timeline.evra')`), 'root folder');
 	await h.run('open-sample'); await p.sleep(1500);
 	await h.run('open-sample'); await p.sleep(1000);
-	t.eq(await p.ev(`app.vault.getFiles().filter(f => f.path.startsWith('Evra sample/') && f.extension === 'evra').length`), 1, 'sample once');
+	t.eq(await p.ev(`app.vault.getFiles().filter(f => f.path.startsWith('Ouroboros sample/') && f.extension === 'evra').length`), 1, 'sample once');
 	const d = await h.doc();
-	const miss = []; for (const e of d.events.filter((e) => e.file)) if (!(await p.ev(`!!app.metadataCache.getFirstLinkpathDest(${JSON.stringify(e.file)}, 'Evra sample/Chronicle of Veld.evra')`))) miss.push(e.file);
+	const miss = []; for (const e of d.events.filter((e) => e.file)) if (!(await p.ev(`!!app.metadataCache.getFirstLinkpathDest(${JSON.stringify(e.file)}, 'Ouroboros sample/Chronicle of Veld.evra')`))) miss.push(e.file);
 	t.eq(miss.join(), '', 'sample links resolve to sample notes');
-	const tgt = await p.ev(`app.metadataCache.getFirstLinkpathDest(${JSON.stringify(d.events.find((e) => e.file).file)}, 'Evra sample/Chronicle of Veld.evra').path`);
-	t.ok(tgt.startsWith('Evra sample/'), 'links point into the sample folder, not the root notes: ' + tgt);
-	await p.ev(`app.vault.getFiles().filter(f => f.path.startsWith('Evra sample/')).forEach(f => app.vault.delete(f)); 1`); await p.sleep(400);
+	const tgt = await p.ev(`app.metadataCache.getFirstLinkpathDest(${JSON.stringify(d.events.find((e) => e.file).file)}, 'Ouroboros sample/Chronicle of Veld.evra').path`);
+	t.ok(tgt.startsWith('Ouroboros sample/'), 'links point into the sample folder, not the root notes: ' + tgt);
+	await p.ev(`app.vault.getFiles().filter(f => f.path.startsWith('Ouroboros sample/')).forEach(f => app.vault.delete(f)); 1`); await p.sleep(400);
 });
 test('N22 save as note from export twice', async (p, h, t) => {
 	await h.open();

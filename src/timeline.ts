@@ -2727,7 +2727,7 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 	function openHelp(at: At) {
 		const rows = [['Double-click', 'Edit a card, or add one on empty space'], ['Drag the line', 'Select a stretch of time for an era or span'], ['Drag a card', 'Change its date; across the line to switch sides'],
 			['Drag a dot', 'Pull a moment into a span, or resize a span'], ['Drag an era edge', 'Anywhere across the timeline. Alt splits shared edges'], ['Shift + click · Shift + drag', 'Select several cards'],
-			['Right-click', 'Card options, or add, paste and fit eras here'], ['Ctrl/⌘ K  ·  /', 'Search, or type a date to jump there'], ['Ctrl/⌘ P', 'All commands (search “Evra”)'],
+			['Right-click', 'Card options, or add, paste and fit eras here'], ['Ctrl/⌘ K  ·  /', 'Search, or type a date to jump there'], ['Ctrl/⌘ P', 'All commands (search “Ouroboros”)'],
 			['J · K', 'Next or previous card'], ['E · ↵', 'Edit (↵ in a description saves and starts the next card)'], ['S · L', 'Make a span · link or options'], ['0 – 9', 'Color preset (0 clears)'],
 			['↑ ↓ ← →', 'Nudge, or switch sides'], ['Ctrl/⌘ C · V · D', 'Copy, paste at the pointer, duplicate'], ['Ctrl/⌘ A · ⌫', 'Select all · delete'], ['N · G · Z · F', 'New card · go to date · zoom to selection · fit all'], ['Ctrl/⌘ Z', 'Undo (Shift to redo)']];
 		openPop(at, `<div class="evra-help"><h4>Using the timeline</h4><dl>${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl></div>`);

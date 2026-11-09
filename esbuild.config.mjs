@@ -3,7 +3,7 @@ import process from "process";
 import { builtinModules } from "node:module";
 
 const banner = `/*
-Evra: worldbuilding timelines for Obsidian.
+Ouroboros Timelines: worldbuilding timelines for Obsidian.
 This is a generated file. The source lives at https://github.com/fyresmith/evra
 */
 `;

@@ -1,4 +1,4 @@
-// End-to-end scenarios. Each gets a fresh copy of the sample world; `p` drives Obsidian, `h` knows Evra, `t` asserts.
+// End-to-end scenarios. Each gets a fresh copy of the sample world; `p` drives Obsidian, `h` knows Ouroboros, `t` asserts.
 export const specs = [];
 const test = (name, fn) => specs.push({ name, fn });
 const A = '.workspace-leaf.mod-active .evra-root';
@@ -21,7 +21,7 @@ test('an empty .evra file becomes a new timeline', async (p, h, t) => {
 	await p.ev(`app.vault.create('Empty.evra', '').then(() => 1)`);
 	await h.open('Empty.evra');
 	const d = await h.saved('Empty.evra');
-	t.eq(d.format, 'evra', 'saved as an Evra file');
+	t.eq(d.format, 'evra', 'saved as an Evra-format file');
 	t.eq(d.events.length, 0, 'no events');
 	t.ok(await p.ev(`!document.querySelector('${A} .empty').hidden`), 'empty-state hint shows');
 });
@@ -524,8 +524,8 @@ test('new timeline and sample commands create files', async (p, h, t) => {
 	await p.ev(`app.commands.executeCommandById('evra:new-timeline')`); await p.sleep(1200);
 	t.ok(await p.ev(`app.vault.getFiles().some(f => f.basename.startsWith('Untitled timeline'))`), 'new timeline');
 	await p.ev(`app.commands.executeCommandById('evra:open-sample')`); await p.sleep(2500);
-	t.ok(await p.ev(`!!app.vault.getAbstractFileByPath('Evra sample/Chronicle of Veld.evra')`), 'sample');
-	t.ok(await p.ev(`!!app.vault.getAbstractFileByPath('Evra sample/The Heron.svg')`), 'sample cover');
+	t.ok(await p.ev(`!!app.vault.getAbstractFileByPath('Ouroboros sample/Chronicle of Veld.evra')`), 'sample');
+	t.ok(await p.ev(`!!app.vault.getAbstractFileByPath('Ouroboros sample/The Heron.svg')`), 'sample cover');
 });
 test('four directions render and keep the stretch of time', async (p, h, t) => {
 	await h.open(); await h.setView(30, 12);
@@ -603,13 +603,13 @@ test('plugin settings tab: drawn from definitions (Obsidian 1.13+), controls sav
 		t.eq(await p.ev(`app.plugins.plugins.evra.settings.newFileFolder`), 'Worlds', 'folder saved, trimmed');
 	} finally { await p.ev(`(() => { app.setting.close(); return 1; })()`); }
 });
-test('a timeline from a newer Evra is refused and never rewritten (open, save, note rename, embed)', async (p, h, t) => {
+test('a timeline from a newer Ouroboros is refused and never rewritten (open, save, note rename, embed)', async (p, h, t) => {
 	const future = JSON.stringify({ format: 'evra', version: 2, name: 'Future', events: [{ id: 'f1', t: 400, side: 'b', title: 'Heron', file: 'The Heron', v2only: { x: 1 } }], newTopField: [1, 2, 3] }, null, '\t');
 	await p.ev(`app.vault.create('Future.evra', ${JSON.stringify(future)}).then(() => 1)`); await p.sleep(300);
 	const disk = () => p.ev(`app.vault.adapter.read('Future.evra')`);
 	await p.ev(`app.workspace.getLeaf(false).openFile(app.vault.getAbstractFileByPath('Future.evra')).then(() => 1)`); await p.sleep(800);
 	const msg = await p.ev(`document.querySelector('.workspace-leaf.mod-active .evra-error')?.innerText || ''`);
-	t.ok(/newer version of Evra \(file format 2\)/.test(msg) && /left untouched/.test(msg), 'says why: ' + msg);
+	t.ok(/newer version of Ouroboros \(file format 2\)/.test(msg) && /left untouched/.test(msg), 'says why: ' + msg);
 	t.ok(!(await p.ev(`!!document.querySelector('.workspace-leaf.mod-active .evra-root')`)), 'no timeline drawn');
 	await p.ev(`app.workspace.activeLeaf.view.save().then(() => 1)`); await p.sleep(300);
 	await p.ev(`(() => { app.workspace.iterateRootLeaves(l => l.detach()); return 1; })()`); await p.sleep(500);
@@ -621,6 +621,6 @@ test('a timeline from a newer Evra is refused and never rewritten (open, save, n
 	await p.ev(`app.vault.create('FutureEmbed.md', ${JSON.stringify('```evra\ntimeline: Future\n```\n')}).then(() => 1)`);
 	await p.ev(`app.workspace.getLeaf(false).setViewState({type: 'markdown', state: {file: 'FutureEmbed.md', mode: 'preview'}}).then(() => 1)`); await p.sleep(1200);
 	const em = await p.ev(`document.querySelector('.workspace-leaf.mod-active .evra-embed')?.innerText || ''`);
-	t.ok(/couldn’t be read\. It was saved by a newer version of Evra/.test(em), 'the embed says why: ' + em);
+	t.ok(/couldn’t be read\. It was saved by a newer version of Ouroboros/.test(em), 'the embed says why: ' + em);
 	t.eq(await disk(), future, 'still byte for byte the same');
 });

@@ -1,7 +1,7 @@
 {
-  "name": "evra",
-  "version": "1.0.8",
-  "description": "Worldbuilding timelines for Obsidian: custom calendars, nested eras, span threads and linked notes.",
+  "name": "ouroboros-timelines",
+  "version": "0.1.0",
+  "description": "Ouroboros Timelines for Obsidian: custom calendars, nested eras, span threads and linked notes, with full compatibility for Evra .evra files.",
   "main": "main.js",
   "type": "module",
   "scripts": {
@@ -27,7 +27,7 @@
     "ttrpg",
     "writing"
   ],
-  "author": "Caleb Smith",
+  "author": "Fatin Hossain",
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^22.0.0",

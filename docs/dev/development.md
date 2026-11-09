@@ -16,7 +16,7 @@ npm run e2e            # end-to-end tests in real Obsidian (headless; see below)
 npm run big-world      # generate Aerth, a large example world (~2,700 notes, 91 eras), in test-vault/Aerth
 ```
 
-`test-vault/` is a small vault containing the sample world. Open it in Obsidian with **Open folder as vault**, then turn on Evra under **Settings → Community plugins**. After a rebuild, run `npm run install-vault` again and reload Obsidian, or use the Hot Reload plugin.
+`test-vault/` is a small vault containing the sample world. Open it in Obsidian with **Open folder as vault**, then turn on Ouroboros Timelines under **Settings → Community plugins**. After a rebuild, run `npm run install-vault` again and reload Obsidian, or use the Hot Reload plugin.
 
 ## Layout
 
@@ -94,14 +94,14 @@ The release tag must match the version in `manifest.json` exactly, with no `v` p
 
 ### The community plugin directory
 
-Evra is listed in Obsidian's directory as [Evra Timelines](https://community.obsidian.md/plugins/evra), and the directory picks up each new release by itself. This is how it got there. Obsidian's docs describe the full process: <https://docs.obsidian.md/Plugins/Releasing/Submit+your+plugin>. In short:
+Ouroboros Timelines remains listed in Obsidian's directory under the existing `evra` plugin ID for compatibility. The directory picks up each new release by itself. Obsidian's docs describe the full process: <https://docs.obsidian.md/Plugins/Releasing/Submit+your+plugin>. In short:
 
 1. Make sure the repository is public, with `README.md`, `LICENSE` and `manifest.json` at its root. The directory reads `manifest.json` from the default branch, so push it first.
 2. Publish a GitHub release as described above. Its tag must equal the manifest version, and it must have `main.js`, `manifest.json` and `styles.css` attached.
 3. Sign in at <https://community.obsidian.md> with an Obsidian account, link the GitHub account that owns the repository, and add the plugin to the directory.
 4. An automated review runs the same kinds of checks as `npm run lint`. To address its feedback, fix the issue and publish a new release with a higher version.
 
-The plugin's id (`evra`) must stay unique and can't contain "obsidian".
+The plugin's id (`evra`) must stay unique and can't contain "obsidian". It is intentionally preserved during this rebrand so existing settings and installations are not orphaned; design a migration before changing it in a future release.
 
 ## The banner
 

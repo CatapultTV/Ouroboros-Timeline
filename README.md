@@ -1,42 +1,44 @@
-<h1 align="center">Evra Timelines for Obsidian</h1>
+<h1 align="center">Ouroboros Timelines for Obsidian</h1>
+
+> Ouroboros Timelines is the new name for this project. Existing `.evra` files remain supported as Evra format version 1; no files are converted automatically. The Obsidian plugin ID remains `evra` temporarily so existing settings and installations continue to work. A future native OB format and migration system are planned, but are not implemented yet.
 
 <p align="center"><img src="docs/media/banner.png" alt="Evra Timelines for Obsidian: timelines for worldbuilders. A timeline of an invented world, with cards on both sides of a line of time, a war drawn as a thread beside it, and eras named along the edge."></p>
 
 <p align="center">Your own calendar · eras nested as deep as you like · stories as threads · cards linked to your notes</p>
 
-Most timeline tools assume our calendar and our kind of history. Evra is built for the ones you make up:
+Most timeline tools assume our calendar and our kind of history. Ouroboros is built for the ones you make up:
 - a calendar with thirteen moons and a festival week;
 - ages that contain reigns that contain wars;
 - a history that runs to three thousand years and two thousand events.
 
 Each timeline is its own `.evra` file in your vault, and its cards can link to the notes you already have.
 
-<p align="center"><img src="docs/media/tour.gif" alt="Scrolling through a timeline in Evra" width="900"></p>
+<p align="center"><img src="docs/media/tour.gif" alt="Scrolling through a timeline in Ouroboros Timelines" width="900"></p>
 
 <table>
 <tr>
-<td width="50%"><img src="docs/media/hero-light.png" alt="Evra in Obsidian's light theme"></td>
-<td width="50%"><img src="docs/media/hero-dark.png" alt="Evra in Obsidian's dark theme"></td>
+<td width="50%"><img src="docs/media/hero-light.png" alt="Ouroboros Timelines in Obsidian's light theme"></td>
+<td width="50%"><img src="docs/media/hero-dark.png" alt="Ouroboros Timelines in Obsidian's dark theme"></td>
 </tr>
 <tr><td align="center"><sub>Light theme</sub></td><td align="center"><sub>Dark theme</sub></td></tr>
 </table>
 
 ## Installation
 
-Evra needs Obsidian 1.6 or later, on a computer, a phone or a tablet.
+Ouroboros Timelines needs Obsidian 1.6 or later, on a computer, a phone or a tablet.
 
 Install it from Obsidian's [community plugin directory](https://community.obsidian.md/plugins/evra): open
-**Settings → Community plugins → Browse**, search for **Evra Timelines**, then choose **Install** and **Enable**.
+**Settings → Community plugins → Browse**, search for **Ouroboros Timelines**, then choose **Install** and **Enable**.
 
 More in [Installation](docs/installation.md).
 
 ## Getting started
 
-1. Click the Evra button in the ribbon, or run **Evra Timelines: New timeline** from the command palette. You can also right-click a folder and choose **New timeline**.
+1. Click the Ouroboros button in the ribbon, or run **Ouroboros Timelines: New timeline** from the command palette. You can also right-click a folder and choose **New timeline**.
 2. Double-click beside the line to add an event.
 3. Drag along the line to create an era.
 
-Want to see a finished one first? Run **Evra Timelines: Open the sample timeline**. It opens *The Chronicle of Veld*, a small world with eras, spans, lifespans and linked notes.
+Want to see a finished one first? Run **Ouroboros Timelines: Open the sample timeline**. It opens *The Chronicle of Veld*, a small world with eras, spans, lifespans and linked notes.
 
 The [walkthrough](docs/getting-started.md) goes on from here, and the [manual](docs/README.md) covers everything.
 
@@ -137,7 +139,7 @@ Drag a note from the file explorer onto the timeline and it becomes a card. The 
 
 <p align="center"><img src="docs/media/hover-preview.png" alt="Hovering a linked card shows Obsidian's page preview of the note" width="700"></p>
 
-**Note sync** is optional and off by default. When it's on, Evra writes each card's date, year, month and era into its note's properties, and keeps them current as you move things. It works the other way too: edit the year in a note, and its card moves. You choose which properties to sync and what they're called. Only notes the timeline links to are ever changed.
+**Note sync** is optional and off by default. When it's on, Ouroboros writes each card's date, year, month and era into its note's properties, and keeps them current as you move things. It works the other way too: edit the year in a note, and its card moves. You choose which properties to sync and what they're called. Only notes the timeline links to are ever changed.
 
 <p align="center"><img src="docs/media/note-sync.gif" alt="Dragging a card updates the linked note's timeline properties" width="900"></p>
 
@@ -149,7 +151,7 @@ Drag a note from the file explorer onto the timeline and it becomes a card. The 
 - **Pick the fields:** date, year, month, day, end date, era, sub-era, every era as a list, and the timeline's name.
 - **Rename them:** use `year` instead of `timeline-year`, for example.
 - **Preview first:** the panel shows exactly what a note will get.
-- **Create cards from notes:** Evra finds notes that have a year or a date in their properties but aren't on the timeline yet, and adds the ones you pick.
+- **Create cards from notes:** Ouroboros finds notes that have a year or a date in their properties but aren't on the timeline yet, and adds the ones you pick.
 
 </td>
 </tr>
@@ -217,7 +219,7 @@ Top to bottom, bottom to top, left to right or right to left. One click switches
 
 ### Built for big worlds
 
-Evra's repository can generate **Aerth**, a test world (`npm run big-world`): 2,700 notes, 1,900 cards and 91 eras nested four deep, across 3,000 years. As you zoom out:
+Ouroboros's repository can generate **Aerth**, a test world (`npm run big-world`): 2,700 notes, 1,900 cards and 91 eras nested four deep, across 3,000 years. As you zoom out:
 - full cards become compact one-line cards (hover one to see it at full size);
 - compact cards become dots;
 - close dots merge into numbered clusters.
@@ -268,7 +270,7 @@ Every timeline command is also in Obsidian's command palette. None of them have 
 - **Export** as a Markdown table or an outline by era, to the clipboard or a new note.
 - **Defaults for new timelines**: save a calendar, formats and colors once, and every new timeline starts with them.
 - **Copy and paste** cards, keeping their spacing; paste lands at the pointer.
-- **Themes**: Evra takes its colors and fonts from your Obsidian theme, in light and dark.
+- **Themes**: Ouroboros takes its colors and fonts from your Obsidian theme, in light and dark.
 - **Touch**: pinch to zoom, and press and hold for the menu. On narrow screens, vertical timelines put every card on one side of the line so none are cut off.
 
 ## Limitations
@@ -284,21 +286,21 @@ The full list is in [Known limitations](docs/limitations.md).
 
 ## Privacy and your files
 
-- **Offline:** Evra works entirely offline. It makes no network requests of its own and collects nothing. (A card's cover image can be a web address you give it; Obsidian loads that like any image in a note.)
-- **Which files it looks at:** Evra lists the files in your vault, on your device only, to:
+- **Offline:** Ouroboros works entirely offline. It makes no network requests of its own and collects nothing. (A card's cover image can be a web address you give it; Obsidian loads that like any image in a note.)
+- **Which files it looks at:** Ouroboros lists the files in your vault, on your device only, to:
   - find your timelines (for embeds, and to update closed timelines when a linked note is renamed);
   - suggest notes when you link a card, or look for dated notes when you ask it to create cards from them.
 
   It reads a note's properties and opening lines only for notes a timeline links to, or that you are choosing from.
-- **Clipboard:** Evra only writes to the clipboard, when you copy cards or export a table, an outline or an embed. It never reads the clipboard; pasting cards uses Evra's own copy buffer.
-- **Your timelines:** each one is a readable JSON file (`.evra`) in your vault. Evra changes it when you edit that timeline, or when a note it links to is renamed, so the link keeps working.
-- **Your notes:** Evra changes a note in two cases only: when you turn on note sync for a timeline that links to it, or when you ask Evra to create a note.
+- **Clipboard:** Ouroboros only writes to the clipboard, when you copy cards or export a table, an outline or an embed. It never reads the clipboard; pasting cards uses its own copy buffer.
+- **Your timelines:** each one is a readable JSON file (`.evra`) in your vault. Ouroboros changes it when you edit that timeline, or when a note it links to is renamed, so the link keeps working.
+- **Your notes:** Ouroboros changes a note in two cases only: when you turn on note sync for a timeline that links to it, or when you ask Ouroboros to create a note.
 
 ## Documentation
 
 | | |
 |---|---|
-| [Manual](docs/README.md) | Everything Evra does, a page per topic |
+| [Manual](docs/README.md) | Everything Ouroboros Timelines does, a page per topic |
 | [Getting started](docs/getting-started.md) | From an empty timeline to a small history |
 | [User guide](docs/user-guide.md) | Cards, spans, eras, selecting, searching, filters, export |
 | [Calendars](docs/calendars.md) · [Date formats](docs/formats.md) | Months, leap years, festival days, era years, and every label template |
@@ -311,8 +313,8 @@ The full list is in [Known limitations](docs/limitations.md).
 
 ## Contributing
 
-Bug reports, ideas and pull requests are welcome. See [Development](docs/dev/development.md) to build Evra, run the tests, and generate the large example world. Before opening a pull request, run `npm run check`.
+Bug reports, ideas and pull requests are welcome. See [Development](docs/dev/development.md) to build Ouroboros Timelines, run the tests, and generate the large example world. Before opening a pull request, run `npm run check`.
 
 ## License
 
-[MIT](LICENSE) © Caleb Smith
+[MIT](LICENSE) © Fatin Hossain

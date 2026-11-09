@@ -14,7 +14,7 @@ export default class EvraPlugin extends Plugin {
 	settings: EvraSettings;
 	notes: NoteCache;
 	private noteLeaf: WorkspaceLeaf | null = null;
-	/** The last timeline properties Evra wrote to each note, and which open timeline wrote them. */
+	/** The last timeline properties Ouroboros wrote to each note, and which open timeline wrote them. */
 	propWrites = new Map<string, { view: EvraView; props: Record<string, PropValue> }>();
 	private redrawT = 0;
 	private renames: [TFile, string][] = []; // note renames waiting to be applied to closed timelines
@@ -28,7 +28,7 @@ export default class EvraPlugin extends Plugin {
 
 		this.registerView(VIEW_TYPE, (leaf) => new EvraView(leaf, this));
 		this.registerExtensions(['evra'], VIEW_TYPE);
-		this.registerHoverLinkSource(VIEW_TYPE, { display: 'Evra Timelines', defaultMod: false });
+		this.registerHoverLinkSource(VIEW_TYPE, { display: 'Ouroboros Timelines', defaultMod: false });
 		for (const lang of ['evra', 'throughline']) this.registerMarkdownCodeBlockProcessor(lang, (src, el, ctx) => renderEmbed(this, src, el, ctx));
 		this.addSettingTab(new EvraSettingTab(this.app, this));
 
@@ -216,7 +216,7 @@ export default class EvraPlugin extends Plugin {
 
 	/** The Chronicle of Veld: a sample timeline with its notes, in its own folder. */
 	async createSample() {
-		const folder = 'Evra sample';
+		const folder = 'Ouroboros sample';
 		const existing = this.app.vault.getAbstractFileByPath(`${folder}/Chronicle of Veld.evra`);
 		if (existing instanceof TFile) { await this.app.workspace.getLeaf('tab').openFile(existing); return; }
 		await this.ensureFolder(folder);
@@ -235,6 +235,6 @@ export default class EvraPlugin extends Plugin {
 		};
 		const f = await this.app.vault.create(evraPath, JSON.stringify(sampleDoc(link), null, '\t'));
 		await this.app.workspace.getLeaf('tab').openFile(f);
-		new Notice('Opened the sample timeline. Its notes are in the sample folder next to it.');
+		new Notice('Opened the Ouroboros sample timeline. Its notes are in the sample folder next to it.');
 	}
 }

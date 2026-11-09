@@ -18,4 +18,4 @@ if (vault === 'test-vault' && !existsSync(`${vault}/Chronicle of Veld.evra`)) {
 	await esbuild.build({ entryPoints: ['scripts/sample-files.ts'], bundle: true, platform: 'node', format: 'cjs', outfile: 'test-dist/sample-files.cjs', logLevel: 'error' });
 	execFileSync(process.execPath, ['test-dist/sample-files.cjs', vault]);
 }
-console.log(`Installed Evra into ${dest}. In Obsidian: Settings → Community plugins → turn on Evra (and turn off Restricted mode if asked).`);
+console.log(`Installed Ouroboros Timelines into ${dest}. In Obsidian: Settings → Community plugins → turn on Ouroboros Timelines (and turn off Restricted mode if asked).`);
