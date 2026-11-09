@@ -1,6 +1,5 @@
-/* The Evra file format (version 1).
-   A timeline is one JSON file with the .evra extension. Dates are whole numbers: days counted from
-   day 1 of year 0 of the timeline's own calendar. See docs/dev/file-format.md. */
+/* Timeline documents. Native Ouroboros Timelines use .ob and format "ob".
+   EvraDoc remains the compatibility name for the shared in-memory model. */
 
 export type Side = 'a' | 'b'; // 'a' is left (vertical) or top (horizontal), 'b' is right or bottom
 export type Orientation = 'ttb' | 'btt' | 'ltr' | 'rtl';
@@ -147,8 +146,8 @@ export interface SavedView {
 	x: number;
 }
 
-export interface EvraDoc {
-	format?: 'evra';
+export interface TimelineDoc {
+	format?: 'ob' | 'evra';
 	version?: number;
 	name: string;
 	cal: Calendar;
@@ -169,6 +168,10 @@ export interface EvraDoc {
 	/** Reserved for sub-timelines: where a branch splits from its parent. */
 	forkAt?: number;
 }
+
+export type OBDoc = TimelineDoc;
+/** @deprecated Use TimelineDoc or OBDoc for new code. */
+export type EvraDoc = TimelineDoc;
 
 /** Settings shared by every timeline, saved with the plugin. */
 export interface TimelineDefaults {

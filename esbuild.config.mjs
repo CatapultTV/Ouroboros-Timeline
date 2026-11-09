@@ -4,7 +4,7 @@ import { builtinModules } from "node:module";
 
 const banner = `/*
 Ouroboros Timelines: worldbuilding timelines for Obsidian.
-This is a generated file. The source lives at https://github.com/fyresmith/evra
+This is a generated file. The source lives at https://github.com/CatapultTV/Ouroboros-Timeline
 */
 `;
 const prod = process.argv[2] === "production";

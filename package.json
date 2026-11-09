@@ -1,6 +1,6 @@
 {
   "name": "ouroboros-timelines",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Ouroboros Timelines for Obsidian: custom calendars, nested eras, span threads and linked notes, with full compatibility for Evra .evra files.",
   "main": "main.js",
   "type": "module",
@@ -43,10 +43,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/fyresmith/evra.git"
+    "url": "https://github.com/CatapultTV/Ouroboros-Timeline.git"
   },
-  "homepage": "https://github.com/fyresmith/evra",
+  "homepage": "https://github.com/CatapultTV/Ouroboros-Timeline",
   "bugs": {
-    "url": "https://github.com/fyresmith/evra/issues"
+    "url": "https://github.com/CatapultTV/Ouroboros-Timeline/issues"
   }
 }

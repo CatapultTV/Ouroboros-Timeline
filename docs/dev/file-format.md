@@ -1,8 +1,8 @@
-# The Evra `.evra` file format (version 1)
+# Ouroboros `.ob` file format (version 1)
 
-Ouroboros Timelines currently uses the existing Evra format unchanged. The plugin ID remains `evra` for compatibility, and no automatic conversion to a future OB format is performed.
+Ouroboros Timelines uses its native `.ob` format with `"format": "ob"` and version `1`. Legacy Evra `.evra` files with `"format": "evra"` remain available when **Enable Evra compatibility** is enabled. They are read and written through the legacy compatibility path and are never silently converted.
 
-A timeline is a single UTF-8 JSON file with the `.evra` extension, indented with tabs. It is meant to be readable, diffable and safe to edit by hand. Ouroboros fills in anything missing when it opens a file. If a file isn't valid JSON, Ouroboros shows a message and leaves the file untouched.
+A timeline is a single UTF-8 JSON file with the `.ob` extension, indented with tabs. It is readable, diffable and safe to edit by hand. Ouroboros fills in anything missing when it opens a file. If a file isn't valid JSON, Ouroboros shows a message and leaves the file untouched.
 
 ## Dates
 
@@ -14,7 +14,7 @@ Year numbers in `range` and in `from` and `to` in embeds are the calendar's inte
 
 ```jsonc
 {
-	"format": "evra",          // always "evra"
+	"format": "ob",            // always "ob" for native files
 	"version": 1,              // this document's format version
 	"name": "Chronicle of Veld",
 	"cal": { … },              // the calendar, below
@@ -140,4 +140,4 @@ A leap rule adds `days` to month `month` in year *y* when *y* − `off` is a mul
 - Later versions of format 1 will only add optional fields.
 - Evra keeps fields it doesn't recognize.
 - A change that older versions couldn't read would raise `version`.
-- Evra won't open a file with a higher `version` than it knows, or with a `format` other than `"evra"`. It shows why, and leaves the file untouched: it never rewrites it, even to follow a renamed note, so nothing a newer Evra wrote is lost. A file with no `format` or `version` is read as version 1.
+- Ouroboros won't open a file with a higher `version` than it knows, or with a format other than the format selected by its extension. It shows why and leaves the file untouched: it never rewrites an unreadable or unsupported file. A legacy file with no `format` or `version` is read as Evra version 1.

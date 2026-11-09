@@ -1,9 +1,9 @@
 {
-	"id": "evra",
+	"id": "ouroboros-timelines",
 	"name": "Ouroboros Timelines",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"minAppVersion": "1.6.0",
-	"description": "Worldbuilding timelines with custom calendars, nested eras, story threads and linked notes. Existing Evra .evra files remain fully supported.",
+	"description": "Worldbuilding timelines with custom calendars, nested eras, story threads and linked notes. Legacy Evra .evra files are optionally supported.",
 	"author": "Fatin Hossain",
 	"isDesktopOnly": false
 }

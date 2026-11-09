@@ -1,9 +1,13 @@
 # Settings
 
-Evra has two places for settings. Almost everything belongs to a timeline and is saved in its file; a few options
+Ouroboros Timelines has two places for settings. Almost everything belongs to a timeline and is saved in its file; a few options
 belong to the plugin.
 
 ## The plugin's settings
+
+### File Format Compatibility
+
+**Enable Evra compatibility** is enabled by default and allows legacy `.evra` files and their `evra`/`throughline` embeds to be opened. Disable it to use native `.ob` files only; reload Obsidian after changing it so file and embed registrations are refreshed. Changing the setting never deletes or modifies existing files.
 
 In Obsidian, **Settings → Evra Timelines**.
 

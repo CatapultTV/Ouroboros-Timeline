@@ -1,7 +1,8 @@
 import { addIcon, normalizePath, Notice, Platform, Plugin, TFile, TFolder, type PaneType, type WorkspaceLeaf } from 'obsidian';
 import { TIMELINE_COMMANDS } from './commands';
 import { renderEmbed } from './embed';
-import { checkFormat, emptyDoc, SAMPLE_COVER, SAMPLE_NOTES, sampleDoc } from './model';
+import { emptyDoc, SAMPLE_COVER, SAMPLE_NOTES, sampleDoc } from './model';
+import { formatForExtension, readTimeline, writeTimeline } from './format';
 import { NoteCache } from './notes';
 import { DEFAULT_SETTINGS, EvraSettingTab, type EvraSettings } from './settings';
 import type { PropValue } from './sync';
@@ -10,7 +11,7 @@ import { EvraView, linkMatchesPath, VIEW_TYPE } from './view';
 // the timeline icon: a line of time with marks on either side
 const ICON_SVG = '<path d="M50 9v82M25 28h19M56 50h19M25 72h19" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round"/>';
 
-export default class EvraPlugin extends Plugin {
+export default class OuroborosPlugin extends Plugin {
 	settings: EvraSettings;
 	notes: NoteCache;
 	private noteLeaf: WorkspaceLeaf | null = null;
@@ -24,23 +25,34 @@ export default class EvraPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 		this.notes = new NoteCache(this.app, () => this.redrawSoon());
-		addIcon('evra', ICON_SVG);
+		addIcon('ouroboros-timelines', ICON_SVG);
 
 		this.registerView(VIEW_TYPE, (leaf) => new EvraView(leaf, this));
-		this.registerExtensions(['evra'], VIEW_TYPE);
+		this.registerExtensions(['ob'], VIEW_TYPE);
+		if (this.settings.evraCompatibility) this.registerExtensions(['evra'], VIEW_TYPE);
 		this.registerHoverLinkSource(VIEW_TYPE, { display: 'Ouroboros Timelines', defaultMod: false });
-		for (const lang of ['evra', 'throughline']) this.registerMarkdownCodeBlockProcessor(lang, (src, el, ctx) => renderEmbed(this, src, el, ctx));
+		this.registerMarkdownCodeBlockProcessor('ob', (src, el, ctx) => renderEmbed(this, src, el, ctx));
+		if (this.settings.evraCompatibility) for (const lang of ['evra', 'throughline']) this.registerMarkdownCodeBlockProcessor(lang, (src, el, ctx) => renderEmbed(this, src, el, ctx));
 		this.addSettingTab(new EvraSettingTab(this.app, this));
 
-		this.addRibbonIcon('evra', 'New timeline', () => { void this.createTimeline(); });
+		this.addRibbonIcon('ouroboros-timelines', 'New timeline', () => { void this.createTimeline(); });
 		this.addCommand({ id: 'new-timeline', name: 'New timeline', callback: () => { void this.createTimeline(); } });
 		this.addCommand({ id: 'open-sample', name: 'Open the sample timeline', callback: () => { void this.createSample(); } });
+		this.addCommand({
+			id: 'convert-evra-to-ob', name: 'Create native OB copy of current Evra timeline',
+			checkCallback: (checking) => {
+				const f = this.app.workspace.getActiveFile();
+				if (!(f instanceof TFile) || f.extension !== 'evra' || !this.settings.evraCompatibility) return false;
+				if (!checking) void this.convertLegacyTimeline(f);
+				return true;
+			},
+		});
 		for (const c of TIMELINE_COMMANDS) {
 			this.addCommand({
 				id: c.id,
 				name: c.name,
 				checkCallback: (checking) => {
-					const view = this.app.workspace.getActiveViewOfType(EvraView);
+				const view = this.app.workspace.getActiveViewOfType(EvraView);
 					if (!view || !view.timeline) return false;
 					if (!checking) view.timeline.run(c.id);
 					return true;
@@ -49,7 +61,7 @@ export default class EvraPlugin extends Plugin {
 		}
 		this.registerEvent(this.app.workspace.on('file-menu', (menu, file) => {
 			if (!(file instanceof TFolder)) return;
-			menu.addItem((item) => item.setTitle('New timeline').setIcon('evra').onClick(() => { void this.createTimeline(file.path); }));
+			menu.addItem((item) => item.setTitle('New timeline').setIcon('ouroboros-timelines').onClick(() => { void this.createTimeline(file.path); }));
 		}));
 
 		// keep cards in step with their notes
@@ -71,7 +83,18 @@ export default class EvraPlugin extends Plugin {
 
 	async loadSettings() {
 		const data = (await this.loadData()) as Partial<EvraSettings> | null;
-		this.settings = { ...DEFAULT_SETTINGS, ...(data || {}) };
+		let migrated: Partial<EvraSettings> | null = null;
+		try {
+			const adapter = this.app.vault.adapter as unknown as { exists?: (path: string) => Promise<boolean>; read?: (path: string) => Promise<string> };
+			const legacyPath = `${this.app.vault.configDir}/plugins/evra/data.json`;
+			if (!data && adapter.exists && adapter.read && await adapter.exists(legacyPath)) {
+				const old: unknown = JSON.parse(await adapter.read(legacyPath));
+				if (old && typeof old === 'object' && !Array.isArray(old)) migrated = { ...old };
+			}
+		} catch { /* malformed or inaccessible legacy settings are ignored safely */ }
+		this.settings = { ...DEFAULT_SETTINGS, ...(migrated || {}), ...(data || {}) };
+		if (data?.evraCompatibility === undefined) this.settings.evraCompatibility = true;
+		if (migrated && !data) await this.saveSettings();
 	}
 	async saveSettings() { await this.saveData(this.settings); }
 
@@ -108,13 +131,16 @@ export default class EvraPlugin extends Plugin {
 		const needles = batch.flatMap(([, old]) => { const base = old.split('/').pop().replace(/\.md$/, ''); return [base, JSON.stringify(base).slice(1, -1)]; });
 		const dirOf = (p: string) => p.split('/').slice(0, -1).join('/');
 		for (const f of this.app.vault.getFiles()) {
-			if (f.extension !== 'evra' || open.has(f.path)) continue;
+			if (!['evra', 'ob'].includes(f.extension) || open.has(f.path)) continue;
+			if (f.extension === 'evra' && !this.settings.evraCompatibility) continue;
 			let text: string;
 			try { text = await this.app.vault.cachedRead(f); } catch { continue; }
 			if (!needles.some((n) => text.includes(n))) continue; // skip the read-and-parse for timelines that can't mention them
 			await this.app.vault.process(f, (data) => {
-				let doc: { events?: { file?: string | null }[]; opts?: { sync?: { notes?: string[] } } };
-				try { doc = JSON.parse(data) as typeof doc; checkFormat(doc); } catch { return data; } // unreadable, or from a newer Evra: leave it as it is
+			let doc: { events?: { file?: string | null }[]; opts?: { sync?: { notes?: string[] } } };
+				const fileFormat = formatForExtension(f.extension);
+				if (!fileFormat) return data;
+				try { doc = readTimeline(JSON.parse(data), f.basename, fileFormat); } catch { return data; } // unreadable or unsupported: leave it as it is
 				if (!doc || typeof doc !== 'object') return data;
 				let changed = false;
 				const here = dirOf(f.path);
@@ -135,7 +161,7 @@ export default class EvraPlugin extends Plugin {
 					const sn = doc.opts && doc.opts.sync && doc.opts.sync.notes;
 					if (Array.isArray(sn) && sn.includes(oldPath)) { doc.opts.sync.notes = sn.map((p) => (p === oldPath ? file.path : p)); changed = true; }
 				}
-				return changed ? JSON.stringify(doc, null, '\t') : data;
+				return changed ? writeTimeline(doc as import('./types').EvraDoc, fileFormat) : data;
 			});
 		}
 	}
@@ -207,17 +233,17 @@ export default class EvraPlugin extends Plugin {
 		const dir = folder ?? (this.settings.newFileFolder.trim() || this.app.fileManager.getNewFileParent(this.app.workspace.getActiveFile()?.path || '').path);
 		const at = dir === '/' ? '' : dir;
 		await this.ensureFolder(at);
-		const path = await this.uniquePath(at, 'Untitled timeline', 'evra');
-		const name = path.split('/').pop().replace(/\.evra$/, '');
+		const path = await this.uniquePath(at, 'Untitled timeline', 'ob');
+		const name = path.split('/').pop().replace(/\.ob$/, '');
 		const doc = emptyDoc(name, this.settings.defaults);
-		const f = await this.app.vault.create(path, JSON.stringify(doc, null, '\t'));
+		const f = await this.app.vault.create(path, writeTimeline(doc, 'ob'));
 		await this.app.workspace.getLeaf('tab').openFile(f);
 	}
 
 	/** The Chronicle of Veld: a sample timeline with its notes, in its own folder. */
 	async createSample() {
 		const folder = 'Ouroboros sample';
-		const existing = this.app.vault.getAbstractFileByPath(`${folder}/Chronicle of Veld.evra`);
+		const existing = this.app.vault.getAbstractFileByPath(`${folder}/Chronicle of Veld.ob`);
 		if (existing instanceof TFile) { await this.app.workspace.getLeaf('tab').openFile(existing); return; }
 		await this.ensureFolder(folder);
 		for (const [name, text] of Object.entries(SAMPLE_NOTES)) {
@@ -226,15 +252,30 @@ export default class EvraPlugin extends Plugin {
 		}
 		if (!this.app.vault.getAbstractFileByPath(`${folder}/The Heron.svg`)) await this.app.vault.create(`${folder}/The Heron.svg`, SAMPLE_COVER);
 		// link each card to the sample's own note, even when the vault has another note with the same name
-		const evraPath = `${folder}/Chronicle of Veld.evra`, mc = this.app.metadataCache;
+		const evraPath = `${folder}/Chronicle of Veld.ob`, mc = this.app.metadataCache;
 		const link = (name: string) => {
 			const note = this.app.vault.getAbstractFileByPath(`${folder}/${name}.md`);
 			if (!(note instanceof TFile)) return `${folder}/${name}`;
 			const text = mc.fileToLinktext(note, evraPath, true);
 			return mc.getFirstLinkpathDest(text, evraPath) === note ? text : `${folder}/${name}`; // the full path if the short one is taken
 		};
-		const f = await this.app.vault.create(evraPath, JSON.stringify(sampleDoc(link), null, '\t'));
+		const f = await this.app.vault.create(evraPath, writeTimeline(sampleDoc(link), 'ob'));
 		await this.app.workspace.getLeaf('tab').openFile(f);
 		new Notice('Opened the Ouroboros sample timeline. Its notes are in the sample folder next to it.');
+	}
+
+	/** Create a separate native copy of a legacy timeline; the source is never modified. */
+	async convertLegacyTimeline(file: TFile): Promise<TFile | null> {
+		if (file.extension !== 'evra' || !this.settings.evraCompatibility) return null;
+		try {
+			const doc = readTimeline(JSON.parse(await this.app.vault.read(file)), file.basename, 'evra');
+			const path = await this.uniquePath(file.parent?.path === '/' ? '' : file.parent?.path || '', file.basename, 'ob');
+			const copy = await this.app.vault.create(path, writeTimeline(doc, 'ob'));
+			new Notice(`Created native OB copy: ${copy.path}`);
+			return copy;
+		} catch (e) {
+			new Notice(`Couldn’t convert “${file.basename}”: ${e instanceof Error ? e.message : String(e)}`);
+			return null;
+		}
 	}
 }

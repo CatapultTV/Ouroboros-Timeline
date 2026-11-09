@@ -1,6 +1,6 @@
 <h1 align="center">Ouroboros Timelines for Obsidian</h1>
 
-> Ouroboros Timelines is the new name for this project. Existing `.evra` files remain supported as Evra format version 1; no files are converted automatically. The Obsidian plugin ID remains `evra` temporarily so existing settings and installations continue to work. A future native OB format and migration system are planned, but are not implemented yet.
+> Ouroboros Timelines is an independent plugin with native `.ob` timeline files and `ob` Markdown embeds. Legacy Evra `.evra` files remain supported through optional compatibility mode; they are never converted automatically. Use **Create native OB copy of current Evra timeline** when you want a separate `.ob` copy.
 
 <p align="center"><img src="docs/media/banner.png" alt="Evra Timelines for Obsidian: timelines for worldbuilders. A timeline of an invented world, with cards on both sides of a line of time, a war drawn as a thread beside it, and eras named along the edge."></p>
 
@@ -11,7 +11,7 @@ Most timeline tools assume our calendar and our kind of history. Ouroboros is bu
 - ages that contain reigns that contain wars;
 - a history that runs to three thousand years and two thousand events.
 
-Each timeline is its own `.evra` file in your vault, and its cards can link to the notes you already have.
+Each native timeline is its own `.ob` file in your vault, and its cards can link to the notes you already have.
 
 <p align="center"><img src="docs/media/tour.gif" alt="Scrolling through a timeline in Ouroboros Timelines" width="900"></p>
 
@@ -27,7 +27,7 @@ Each timeline is its own `.evra` file in your vault, and its cards can link to t
 
 Ouroboros Timelines needs Obsidian 1.6 or later, on a computer, a phone or a tablet.
 
-Install it from Obsidian's [community plugin directory](https://community.obsidian.md/plugins/evra): open
+Copy the packaged plugin into `.obsidian/plugins/ouroboros-timelines/` in your vault, then open
 **Settings → Community plugins → Browse**, search for **Ouroboros Timelines**, then choose **Install** and **Enable**.
 
 More in [Installation](docs/installation.md).
@@ -159,10 +159,10 @@ Drag a note from the file explorer onto the timeline and it becomes a card. The 
 
 ### Timelines inside notes
 
-Put part of a timeline in any note with an `evra` code block: a whole timeline, one era, a range of years, or one tag. Click an event in it to jump to that card.
+Put part of a timeline in any note with an `ob` code block: a whole timeline, one era, a range of years, or one tag. Click an event in it to jump to that card. Legacy `evra` and `throughline` blocks work while Evra compatibility is enabled.
 
 ````markdown
-```evra
+```ob
 timeline: Chronicle of Veld
 era: Reign of Ash
 ```
@@ -277,7 +277,7 @@ Every timeline command is also in Obsidian's command palette. None of them have 
 
 - **Sub-timelines aren't built yet.** Linking timelines into a tree, and branching one for an alternate history, is
   what comes next: see the [roadmap](ROADMAP.md).
-- **Obsidian Sync** carries `.evra` files only with **Sync all other types** turned on. Tools that copy every file
+- **Obsidian Sync** carries `.ob` and legacy `.evra` files only with **Sync all other types** turned on. Tools that copy every file
   (iCloud, Syncthing, Dropbox, git) carry them without any setting.
 - **Undo** covers the timeline, not your notes. What note sync wrote into a note is undone in that note.
 - **Filters** belong to the view you're looking at and aren't saved in the file. Saved views keep a stretch of time.
@@ -293,7 +293,7 @@ The full list is in [Known limitations](docs/limitations.md).
 
   It reads a note's properties and opening lines only for notes a timeline links to, or that you are choosing from.
 - **Clipboard:** Ouroboros only writes to the clipboard, when you copy cards or export a table, an outline or an embed. It never reads the clipboard; pasting cards uses its own copy buffer.
-- **Your timelines:** each one is a readable JSON file (`.evra`) in your vault. Ouroboros changes it when you edit that timeline, or when a note it links to is renamed, so the link keeps working.
+- **Your timelines:** native timelines are readable JSON files (`.ob`) in your vault. Legacy `.evra` files remain readable when compatibility is enabled. Ouroboros changes a timeline when you edit it, or when a note it links to is renamed, so the link keeps working.
 - **Your notes:** Ouroboros changes a note in two cases only: when you turn on note sync for a timeline that links to it, or when you ask Ouroboros to create a note.
 
 ## Documentation
@@ -309,7 +309,7 @@ The full list is in [Known limitations](docs/limitations.md).
 | [Troubleshooting](docs/troubleshooting.md) · [Known limitations](docs/limitations.md) | When something isn't as you expect |
 | [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) | What's planned, and what changed |
 | [Development](docs/dev/development.md) · [File format](docs/dev/file-format.md) | For contributors, and for anyone reading a `.evra` file |
-| [Issues](https://github.com/fyresmith/evra/issues) | Report a problem or ask for something |
+| [Issues](https://github.com/CatapultTV/Ouroboros-Timeline/issues) | Report a problem or ask for something |
 
 ## Contributing
 

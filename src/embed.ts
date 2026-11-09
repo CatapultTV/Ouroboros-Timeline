@@ -2,9 +2,15 @@ import { FileView, MarkdownRenderChild, TFile, type MarkdownPostProcessorContext
 import { svgEl } from './dom';
 import { makeEngine } from './engine';
 import type EvraPlugin from './main';
-import { normDoc, UnsupportedFile } from './model';
+import { UnsupportedFile } from './model';
+import { formatForExtension, parseTimeline } from './format';
 import { VIEW_TYPE } from './view';
 import type { EvraDoc } from './types';
+
+function isTimelinePath(plugin: EvraPlugin, path: string): boolean {
+	return path.endsWith('.ob') || (plugin.settings.evraCompatibility && path.endsWith('.evra'));
+}
+function allowedTimeline(plugin: EvraPlugin, file: { path: string }): boolean { return isTimelinePath(plugin, file.path); }
 
 /* A timeline inside a note:
    ```evra
@@ -21,14 +27,20 @@ export function parseEmbed(src: string): Record<string, string> {
 
 function findTimeline(plugin: EvraPlugin, name: string | undefined, sourcePath: string): TFile | null {
 	const mc = plugin.app.metadataCache;
+	const allowed = (f: TFile) => f.extension === 'ob' || (plugin.settings.evraCompatibility && f.extension === 'evra');
 	if (name) {
 		const n = name.replace(/^\[\[|\]\]$/g, '').split('|')[0].trim();
-		const f = mc.getFirstLinkpathDest(n.endsWith('.evra') ? n : n + '.evra', sourcePath);
-		if (f) return f;
-		const byName = plugin.app.vault.getFiles().find((x) => x.extension === 'evra' && x.basename.toLowerCase() === n.toLowerCase());
+		const explicit = /\.(ob|evra)$/.test(n) ? n : n + '.ob';
+		const f = mc.getFirstLinkpathDest(explicit, sourcePath);
+		if (f instanceof TFile && allowed(f)) return f;
+		if (plugin.settings.evraCompatibility && !/\.ob$/.test(n)) {
+			const legacy = mc.getFirstLinkpathDest(n.endsWith('.evra') ? n : n + '.evra', sourcePath);
+			if (legacy instanceof TFile && allowed(legacy)) return legacy;
+		}
+		const byName = plugin.app.vault.getFiles().find((x) => allowed(x) && x.basename.toLowerCase() === n.replace(/\.(ob|evra)$/, '').toLowerCase());
 		return byName || null;
 	}
-	const all = plugin.app.vault.getFiles().filter((x) => x.extension === 'evra').sort((a, b) => a.path.localeCompare(b.path));
+	const all = plugin.app.vault.getFiles().filter(allowed).sort((a, b) => a.path.localeCompare(b.path));
 	// the nearest timeline up the note's folders: its own folder first, then each parent up to the vault root
 	// (a root-level file's parent path is '/', while a root note's folder is '')
 	const folderOf = (x: TFile) => { const p = x.parent ? x.parent.path : ''; return p === '/' ? '' : p; };
@@ -45,12 +57,12 @@ class EmbedChild extends MarkdownRenderChild {
 	onload() {
 		void this.render();
 		// only saves to the timeline shown here (or any timeline while none is found) redraw it
-		this.registerEvent(this.plugin.app.vault.on('modify', (f) => { if (f.path.endsWith('.evra') && (this.filePath == null || f.path === this.filePath)) void this.render(); }));
+		this.registerEvent(this.plugin.app.vault.on('modify', (f) => { if (allowedTimeline(this.plugin, f) && (this.filePath == null || f.path === this.filePath)) void this.render(); }));
 		// a renamed, deleted or new timeline can change which file the embed's name points at, so resolve it again
 		const ws = this.plugin.app.workspace, vault = this.plugin.app.vault;
-		this.registerEvent(vault.on('rename', (f, oldPath) => { if (f.path.endsWith('.evra') || oldPath.endsWith('.evra')) void this.render(); }));
-		this.registerEvent(vault.on('delete', (f) => { if (f.path.endsWith('.evra')) void this.render(); }));
-		this.registerEvent(vault.on('create', (f) => { if (ws.layoutReady && f.path.endsWith('.evra')) void this.render(); })); // every file is "created" while the vault loads
+		this.registerEvent(vault.on('rename', (f, oldPath) => { if (isTimelinePath(this.plugin, f.path) || isTimelinePath(this.plugin, oldPath)) void this.render(); }));
+		this.registerEvent(vault.on('delete', (f) => { if (isTimelinePath(this.plugin, f.path)) void this.render(); }));
+		this.registerEvent(vault.on('create', (f) => { if (ws.layoutReady && isTimelinePath(this.plugin, f.path)) void this.render(); })); // every file is "created" while the vault loads
 	}
 	/** Show an event: in the leaf that already has this timeline open, or in a new one. */
 	private async open(file: TFile, id: string) {
@@ -68,7 +80,7 @@ class EmbedChild extends MarkdownRenderChild {
 		this.filePath = file ? file.path : null;
 		let doc: EvraDoc = null, failed: string | null = null;
 		if (file) {
-			try { doc = normDoc(JSON.parse(await this.plugin.app.vault.cachedRead(file)), file.basename); }
+			try { doc = parseTimeline(await this.plugin.app.vault.cachedRead(file), file.basename, formatForExtension(file.extension) || 'ob'); }
 			catch (e) { failed = e instanceof UnsupportedFile ? e.message : ''; }
 		}
 		if (gen !== this.gen) return; // a newer render has taken over

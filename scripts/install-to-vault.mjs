@@ -6,13 +6,13 @@ import { execFileSync } from 'child_process';
 
 const vault = process.argv[2] || 'test-vault';
 if (!existsSync('main.js')) { console.error('Run "npm run build" first.'); process.exit(1); }
-const dest = `${vault}/.obsidian/plugins/evra`;
+const dest = `${vault}/.obsidian/plugins/ouroboros-timelines`;
 mkdirSync(dest, { recursive: true });
 for (const f of ['main.js', 'manifest.json', 'styles.css']) copyFileSync(f, `${dest}/${f}`);
 
 const enabled = `${vault}/.obsidian/community-plugins.json`;
 const list = existsSync(enabled) ? JSON.parse(readFileSync(enabled, 'utf8')) : [];
-if (!list.includes('evra')) { list.push('evra'); writeFileSync(enabled, JSON.stringify(list, null, 2)); }
+if (!list.includes('ouroboros-timelines')) { list.push('ouroboros-timelines'); writeFileSync(enabled, JSON.stringify(list, null, 2)); }
 
 if (vault === 'test-vault' && !existsSync(`${vault}/Chronicle of Veld.evra`)) {
 	await esbuild.build({ entryPoints: ['scripts/sample-files.ts'], bundle: true, platform: 'node', format: 'cjs', outfile: 'test-dist/sample-files.cjs', logLevel: 'error' });

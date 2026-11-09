@@ -1,13 +1,12 @@
 # Installation
 
-Ouroboros Timelines needs Obsidian 1.6 or later. It works on a computer, a phone and a tablet. It is installed from Obsidian's
-[community plugin directory](https://community.obsidian.md/plugins/evra).
+Ouroboros Timelines needs Obsidian 1.6 or later. It works on a computer, a phone and a tablet. Install the packaged
+plugin files in your vault's `.obsidian/plugins/ouroboros-timelines/` directory.
 
 ## Installing
 
 1. Open **Settings → Community plugins**. If community plugins are off, turn them on.
-2. Choose **Browse** and search for **Ouroboros Timelines**, or open its
-   [page in the directory](https://community.obsidian.md/plugins/evra).
+2. Copy `main.js`, `manifest.json`, and `styles.css` into `.obsidian/plugins/ouroboros-timelines/`.
 3. Choose **Install**, then **Enable**.
 
 ## Updating

@@ -2,13 +2,14 @@ import { Keymap, Notice, Scope, TextFileView, TFile, type WorkspaceLeaf, type Vi
 import { makeEngine } from './engine';
 import type { TimelineHost } from './host';
 import { emptyDoc, mergeDocs, normDoc, UnsupportedFile } from './model';
+import { formatForExtension, parseTimeline, writeTimeline, type TimelineFormat } from './format';
 import { applyProps, desiredProps, liveFields, needsWrite } from './sync';
 import { mountTimeline, type Timeline, type ViewState } from './timeline';
 import type EvraPlugin from './main';
 import { NotePicker } from './picker';
 import type { EvraDoc, EvraEvent, TimelineDefaults } from './types';
 
-export const VIEW_TYPE = 'evra';
+export const VIEW_TYPE = 'ouroboros-timelines';
 
 interface EvraViewState extends Record<string, unknown> { evraView?: ViewState }
 
@@ -39,19 +40,22 @@ export class EvraView extends TextFileView {
 	}
 
 	getViewType(): string { return VIEW_TYPE; }
-	getIcon(): string { return 'evra'; }
+	getIcon(): string { return 'ouroboros-timelines'; }
 	getDisplayText(): string { return this.file ? this.file.basename : 'Timeline'; }
 
 	getViewData(): string {
 		if (this.broken != null || !this.timeline) return this.broken ?? this.data;
-		return JSON.stringify({ format: 'evra', version: 1, ...this.timeline.getDoc() }, null, '\t');
+		return writeTimeline(this.timeline.getDoc(), this.fileFormat());
 	}
+
+	private fileFormat(): TimelineFormat { return formatForExtension(this.file?.extension || '') || 'ob'; }
 
 	setViewData(data: string, clear: boolean): void {
 		// links resolve relative to the timeline file, so a different file starts with an empty cache
 		if (clear || this.resolvedFor !== (this.file ? this.file.path : null)) this.forget();
 		this.resolvedFor = this.file ? this.file.path : null;
 		let doc: EvraDoc;
+		const format = this.fileFormat();
 		const name = this.file ? this.file.basename : 'Untitled';
 		if (!data.trim()) {
 			doc = emptyDoc(name, this.plugin.settings.defaults);
@@ -59,16 +63,16 @@ export class EvraView extends TextFileView {
 			this.requestSave();
 		} else {
 			try {
-				doc = normDoc(JSON.parse(data), name);
+					doc = parseTimeline(data, name, format);
 				this.broken = null;
 			} catch (e) {
 				// Unsaved changes here are kept aside (never written over the broken file) and merged into the next valid version
 				if (clear) this.stranded = null;
 				else if (this.timeline && this.base != null) {
 					this.timeline.flush();
-					const ours = JSON.stringify({ format: 'evra', version: 1, ...this.timeline.getDoc() }); // as saved, so key order matches
+					const ours = writeTimeline(this.timeline.getDoc(), format); // as saved, so key order matches
 					let same = false;
-					try { same = JSON.stringify({ format: 'evra', version: 1, ...normDoc(JSON.parse(this.base), name) }) === ours; } catch { /* base unreadable */ }
+					try { same = writeTimeline(parseTimeline(this.base, name, format), format) === ours; } catch { /* base unreadable */ }
 					if (!same) this.stranded = { base: this.base, ours };
 				}
 				this.broken = data;
@@ -83,7 +87,7 @@ export class EvraView extends TextFileView {
 		this.base = data;
 		if (stranded) {
 			try {
-				doc = normDoc(mergeDocs(normDoc(JSON.parse(base), name), JSON.parse(stranded.ours), doc), name);
+				 doc = normDoc(mergeDocs(parseTimeline(base, name, format), JSON.parse(stranded.ours), doc), name, format);
 				this.requestSave();
 				new Notice(`“${name}” can be read again. The changes you hadn’t saved were kept.`);
 			} catch { /* base unreadable: take the new version */ }
@@ -94,10 +98,10 @@ export class EvraView extends TextFileView {
 		this.timeline.flush();
 		const ours = this.timeline.getDoc();
 		let baseDoc: EvraDoc = null;
-		try { baseDoc = base != null ? normDoc(JSON.parse(base), name) : null; } catch { /* base unreadable: take the outside version */ }
-		const canon = (d: EvraDoc) => JSON.stringify({ format: 'evra', version: 1, ...d }); // as saved, so key order matches
+		try { baseDoc = base != null ? parseTimeline(base, name, format) : null; } catch { /* base unreadable: take the outside version */ }
+		const canon = (d: EvraDoc) => writeTimeline(d, format); // as saved, so key order matches
 		if (baseDoc && canon(baseDoc) !== canon(ours) && canon(ours) !== canon(doc)) {
-			doc = normDoc(mergeDocs(baseDoc, JSON.parse(JSON.stringify(ours)), doc), name);
+			doc = normDoc(mergeDocs(baseDoc, JSON.parse(JSON.stringify(ours)), doc), name, format);
 			this.requestSave();
 			new Notice(`“${name}” changed on disk while it had unsaved changes here. Both sets of changes were kept.`);
 		}
@@ -258,7 +262,7 @@ export class EvraView extends TextFileView {
 		if (Date.now() - this.othersAt < 5000) return;
 		this.othersAt = Date.now();
 		const app = this.app, mine = this.file ? this.file.path : '';
-		void Promise.all(app.vault.getFiles().filter((f) => f.extension === 'evra' && f.path !== mine).map(async (f) => {
+		void Promise.all(app.vault.getFiles().filter((f) => (f.extension === 'ob' || (this.plugin.settings.evraCompatibility && f.extension === 'evra')) && f.path !== mine).map(async (f) => {
 			try {
 				const d = JSON.parse(await app.vault.cachedRead(f)) as Partial<EvraDoc>, out: string[] = [];
 				for (const e of Array.isArray(d.events) ? d.events : []) {

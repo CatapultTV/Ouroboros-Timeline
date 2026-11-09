@@ -134,17 +134,34 @@ export class UnsupportedFile extends Error {}
 
 /** Throws UnsupportedFile for a file from another program or a newer Ouroboros. A file without format or version is taken as
     version 1, as the earliest files and hand-written ones may leave them out. */
+function checkVersion(raw: Loose, label: string): void {
+	if (!('version' in raw) || raw.version === FORMAT_VERSION) return;
+	const v = raw.version;
+	if (typeof v === 'number' && Number.isInteger(v) && v > FORMAT_VERSION) throw new UnsupportedFile(`It was saved by a newer version of ${label} (file format ${v}). Update Ouroboros Timelines to open it.`);
+	throw new UnsupportedFile(`Its format version, ${JSON.stringify(v)}, isn’t one ${label} knows.`);
+}
+
+export function checkEvraFormat(raw: unknown): void {
+	if (!isObj(raw)) return;
+	if ('format' in raw && raw.format !== 'evra') throw new UnsupportedFile(`It isn’t an Evra timeline: its format is ${JSON.stringify(raw.format)}.`);
+	checkVersion(raw, 'Evra');
+}
+
+export function checkObFormat(raw: unknown): void {
+	if (!isObj(raw)) return;
+	if ('format' in raw && raw.format !== 'ob') throw new UnsupportedFile(`It isn’t an Ouroboros timeline: its format is ${JSON.stringify(raw.format)}.`);
+	checkVersion(raw, 'Ouroboros');
+}
+
+/** Legacy validator retained for existing callers and tests. */
 export function checkFormat(raw: unknown): void {
 	if (!isObj(raw)) return;
 	if ('format' in raw && raw.format !== 'evra') throw new UnsupportedFile(`It isn’t an Ouroboros timeline: its format is ${JSON.stringify(raw.format)}.`);
-	if (!('version' in raw) || raw.version === FORMAT_VERSION) return;
-	const v = raw.version;
-	if (typeof v === 'number' && Number.isInteger(v) && v > FORMAT_VERSION) throw new UnsupportedFile(`It was saved by a newer version of Ouroboros (file format ${v}). Update Ouroboros Timelines to open it.`);
-	throw new UnsupportedFile(`Its format version, ${JSON.stringify(v)}, isn’t one Ouroboros knows.`);
+	checkVersion(raw, 'Ouroboros');
 }
 
-export function normDoc(raw: unknown, fallbackName = 'Untitled'): EvraDoc {
-	checkFormat(raw); // before anything is changed or dropped
+export function normDoc(raw: unknown, fallbackName = 'Untitled', format: 'ob' | 'evra' = 'evra'): EvraDoc {
+	(format === 'ob' ? checkObFormat : checkFormat)(raw); // before anything is changed or dropped
 	const d = (raw && typeof raw === 'object' ? raw : {}) as Partial<EvraDoc>;
 	const palette = (Array.isArray(d.palette) ? d.palette : []).filter((p) => isObj(p) && (typeof p.id === 'string' || typeof p.id === 'number') && p.id !== '')
 		.map((p): ColorPreset => ({ ...p, id: String(p.id), name: text(p.name, typeof p.name === 'number' ? String(p.name) : 'Untitled color'), hex: typeof p.hex === 'string' && HEX.test(p.hex) ? p.hex : null }));
@@ -207,7 +224,7 @@ export function normDoc(raw: unknown, fallbackName = 'Untitled'): EvraDoc {
 	if ('lastView' in d && !(Array.isArray(d.lastView) && d.lastView.length === 2 && okDay(d.lastView[0]) && okDay(d.lastView[1]))) delete d.lastView;
 	if ('forkAt' in d && !okDay(d.forkAt)) delete d.forkAt;
 	d.range = normRange(d as EvraDoc);
-	d.format = 'evra';
+	d.format = format;
 	d.version = 1;
 	return d as EvraDoc;
 }

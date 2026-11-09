@@ -1,8 +1,8 @@
-import { PluginSettingTab, Setting, type App, type SettingDefinitionItem } from 'obsidian';
+import { Notice, PluginSettingTab, Setting, type App, type SettingDefinitionItem } from 'obsidian';
 import type EvraPlugin from './main';
 import type { TimelineDefaults } from './types';
 
-export interface EvraSettings {
+export interface OuroborosSettings {
 	/** Where new timelines go. Empty: Obsidian's setting for new notes. */
 	newFileFolder: string;
 	/** Where "Convert to note" puts new notes. Empty: next to the timeline. */
@@ -10,9 +10,14 @@ export interface EvraSettings {
 	openNotesIn: 'split' | 'tab' | 'same';
 	/** The starting calendar, formats, colors and card options for new timelines. */
 	defaults: TimelineDefaults | null;
+	/** Recognise and edit legacy Evra timelines. */
+	evraCompatibility: boolean;
 }
 
-export const DEFAULT_SETTINGS: EvraSettings = { newFileFolder: '', noteFolder: '', openNotesIn: 'split', defaults: null };
+/** @deprecated Use OuroborosSettings. */
+export type EvraSettings = OuroborosSettings;
+
+export const DEFAULT_SETTINGS: OuroborosSettings = { newFileFolder: '', noteFolder: '', openNotesIn: 'split', defaults: null, evraCompatibility: true };
 
 /* Settings for the plugin as a whole. Each timeline's own calendar, formats and colors are in its settings panel. */
 const TEXT = {
@@ -48,6 +53,9 @@ export class EvraSettingTab extends PluginSettingTab {
 				} },
 				{ name: TEXT.sample[0], desc: TEXT.sample[1], render: (st) => { st.addButton((b) => b.setButtonText('Open the sample').onClick(() => { void this.plugin.createSample(); })); } },
 			] },
+			{ type: 'group', heading: 'File Format Compatibility', items: [
+				{ name: 'Enable Evra compatibility', desc: 'Allow Ouroboros Timelines to recognise, open and edit legacy Evra .evra timeline files.', control: { type: 'toggle', key: 'evraCompatibility' } },
+			] },
 		];
 	}
 
@@ -55,6 +63,7 @@ export class EvraSettingTab extends PluginSettingTab {
 		const s = this.plugin.settings;
 		if (key === 'newFileFolder' || key === 'noteFolder') s[key] = typeof value === 'string' ? value.trim() : '';
 		else if (key === 'openNotesIn' && typeof value === 'string' && value in OPEN_IN) s.openNotesIn = value as EvraSettings['openNotesIn'];
+		else if (key === 'evraCompatibility' && typeof value === 'boolean') s.evraCompatibility = value;
 		return this.plugin.saveSettings();
 	}
 
@@ -89,5 +98,14 @@ export class EvraSettingTab extends PluginSettingTab {
 			.setName(TEXT.sample[0])
 			.setDesc(TEXT.sample[1])
 			.addButton((b) => b.setButtonText('Open the sample').onClick(() => { void this.plugin.createSample(); }));
+
+		new Setting(containerEl).setName('File Format Compatibility').setHeading();
+		new Setting(containerEl)
+			.setName('Enable Evra compatibility')
+			.setDesc('Allow Ouroboros Timelines to recognise, open and edit legacy Evra .evra timeline files.')
+			.addToggle((t) => t.setValue(s.evraCompatibility).onChange(async (v) => {
+				s.evraCompatibility = v; await this.plugin.saveSettings();
+				new Notice('Reload Obsidian to apply the file-format registration change.');
+			}));
 	}
 }
