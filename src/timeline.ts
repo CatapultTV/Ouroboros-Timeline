@@ -1967,6 +1967,7 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ti
 			<div class="rowx"><button class="btn" data-k="fReset">Reset all formats</button></div>`;
 		} else if (sheetTab === 'timeline') {
 			h = `<section><h4>Name</h4>${field('tName', 'Timeline name', S.name)}</section>
+			<section><h4>Version</h4><label class="fld"><span>Format</span><select data-k="docFormat" aria-label="Timeline format"><option value="ob" ${host.fileFormat() === 'ob' ? 'selected' : ''}>Ouroboros Timelines (OB)</option>${host.evraAvailable() ? `<option value="evra" ${host.fileFormat() === 'evra' ? 'selected' : ''}>Legacy Evra</option>` : ''}</select></label><p class="note">OB is the native format. Evra is maintained for legacy compatibility.</p></section>
 			<section><h4>Direction</h4><div class="seg">${(Object.entries(ORIENT) as [Orientation, { rot: number; label: string }][]).map(([k, v]) => `<button data-o="${k}" class="${S.orientation === k ? 'on' : ''}" title="${v.label}" aria-label="${v.label}">${ICON.arrow(v.rot)}</button>`).join('')}</div><p class="note">${ORIENT[S.orientation].label}</p></section>
 			<section><h4>Range</h4><div class="grid2"><label class="fld"><span>From ${esc(c.units.year)}</span><input type="number" data-k="r0" value="${S.range[0] + c.yearStart}"></label><label class="fld"><span>To ${esc(c.units.year)}</span><input type="number" data-k="r1" value="${S.range[1] + c.yearStart}"></label></div>
 			<div class="rowx"><button class="btn" data-k="rFit">Fit the range to my events</button></div></section>
@@ -2140,6 +2141,8 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ti
 		const fr = k('fReset');
 		if (fr) fr.onclick = () => { step(() => { S.cal.fmt = { ...DEFAULT_FMT }; }); renderSheet(); };
 		// timeline
+		const df = k<HTMLSelectElement>('docFormat');
+		if (df) df.onchange = () => { if (df.value !== host.fileFormat()) { const target = df.value as 'ob' | 'evra'; df.value = host.fileFormat(); host.convertFormat(target); } };
 		const nm = k<HTMLInputElement>('tName');
 		if (nm) liveText(nm, (v) => { S.name = v.trim() || 'Untitled'; });
 		qq('[data-o]').forEach((b) => (b.onclick = () => { setOrientation(b.dataset.o as Orientation); renderSheet(); }));
@@ -2922,3 +2925,4 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ti
 		},
 	};
 }
+

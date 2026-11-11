@@ -266,12 +266,23 @@ export default class OuroborosPlugin extends Plugin {
 
 	/** Create a separate native copy of a legacy timeline; the source is never modified. */
 	async convertLegacyTimeline(file: TFile): Promise<TFile | null> {
-		if (file.extension !== 'evra' || !this.settings.evraCompatibility) return null;
+		return this.convertTimeline(file, 'ob');
+	}
+
+	async convertTimeline(file: TFile, target: 'ob' | 'evra'): Promise<TFile | null> {
+		if (target === 'evra' && !this.settings.evraCompatibility) { new Notice('Enable legacy Evra compatibility to create Evra timelines.'); return null; }
+		if (formatForExtension(file.extension) === target) return file;
 		try {
-			const doc = readTimeline(JSON.parse(await this.app.vault.read(file)), file.basename, 'evra');
-			const path = await this.uniquePath(file.parent?.path === '/' ? '' : file.parent?.path || '', file.basename, 'ob');
-			const copy = await this.app.vault.create(path, writeTimeline(doc, 'ob'));
-			new Notice(`Created native OB copy: ${copy.path}`);
+			const source = formatForExtension(file.extension);
+			if (!source) return null;
+			if (!window.confirm(`Convert this timeline into ${target === 'ob' ? 'Ouroboros Timelines (OB)' : 'Legacy Evra'}? The original file will remain unchanged.`)) return null;
+			const doc = readTimeline(JSON.parse(await this.app.vault.read(file)), file.basename, source);
+			const path = await this.uniquePath(file.parent?.path === '/' ? '' : file.parent?.path || '', file.basename, target);
+			const text = writeTimeline(doc, target);
+			readTimeline(JSON.parse(text), file.basename, target);
+			const copy = await this.app.vault.create(path, text);
+			new Notice(`Created ${target === 'ob' ? 'native OB' : 'Legacy Evra'} copy: ${copy.path}`);
+			await this.app.workspace.getLeaf('tab').openFile(copy);
 			return copy;
 		} catch (e) {
 			new Notice(`Couldn’t convert “${file.basename}”: ${e instanceof Error ? e.message : String(e)}`);

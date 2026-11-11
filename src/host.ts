@@ -8,6 +8,9 @@ export interface TimelineHost {
 	saveViewState(): void;
 	/** A short name for the timeline file, for embeds. */
 	fileName(): string;
+	fileFormat(): 'ob' | 'evra';
+	convertFormat(format: 'ob' | 'evra'): void;
+	evraAvailable(): boolean;
 
 	// Linked notes. A link is a path without ".md", or any link text Obsidian can resolve.
 	noteExists(link: string): boolean;

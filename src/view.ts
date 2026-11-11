@@ -283,6 +283,9 @@ export class OuroborosView extends TextFileView {
 		const app = this.app, plugin = this.plugin;
 		const fmOf = (f: TFile) => app.metadataCache.getFileCache(f)?.frontmatter as Record<string, unknown> | undefined;
 		return {
+			fileFormat: () => this.fileFormat(),
+			evraAvailable: () => plugin.settings.evraCompatibility,
+			convertFormat: (format) => { if (this.file) void plugin.convertTimeline(this.file, format); },
 			requestSave: () => { this.firstCard = null; this.requestSave(); this.updateUndo(); this.shareDoc(); },
 			saveViewState: () => app.workspace.requestSaveLayout(),
 			fileName: () => (this.file ? this.file.basename : 'Timeline'),
