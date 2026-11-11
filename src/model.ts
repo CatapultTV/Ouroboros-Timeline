@@ -1,5 +1,5 @@
 import { clamp, DEFAULT_FMT, makeEngine, str, uid } from './engine';
-import type { Calendar, ColorPreset, Era, EvraDoc, EvraEvent, Formats, LeapRule, Month, Opts, SecondCalendar, SyncField, SyncKey, SyncOpts, TimelineDefaults, Units } from './types';
+import type { Calendar, ColorPreset, Era, TimelineDoc, TimelineEvent, Formats, LeapRule, Month, Opts, SecondCalendar, SyncField, SyncKey, SyncOpts, TimelineDefaults, Units } from './types';
 
 /* Creating, upgrading and checking timeline documents. */
 
@@ -111,7 +111,7 @@ function fixEraParents(eras: Era[]): void {
 }
 
 /** The range in years: two whole numbers, end after start. Otherwise years 0 to 10, widened to hold every event and era. */
-function normRange(d: EvraDoc): [number, number] {
+function normRange(d: TimelineDoc): [number, number] {
 	const E = makeEngine(() => d), lim = DAY_LIMIT / Math.max(1, E.dpy());
 	const r = Array.isArray(d.range) && d.range.length === 2 ? d.range.map((x) => (typeof x === 'number' && Number.isFinite(x) ? Math.round(x) : NaN)) : [];
 	if (r.length === 2 && Math.abs(r[0]) < lim && Math.abs(r[1]) < lim && r[1] > r[0]) return [r[0], r[1]];
@@ -160,9 +160,9 @@ export function checkFormat(raw: unknown): void {
 	checkVersion(raw, 'Ouroboros');
 }
 
-export function normDoc(raw: unknown, fallbackName = 'Untitled', format: 'ob' | 'evra' = 'evra'): EvraDoc {
+export function normDoc(raw: unknown, fallbackName = 'Untitled', format: 'ob' | 'evra' = 'evra'): TimelineDoc {
 	(format === 'ob' ? checkObFormat : checkFormat)(raw); // before anything is changed or dropped
-	const d = (raw && typeof raw === 'object' ? raw : {}) as Partial<EvraDoc>;
+	const d = (raw && typeof raw === 'object' ? raw : {}) as Partial<TimelineDoc>;
 	const palette = (Array.isArray(d.palette) ? d.palette : []).filter((p) => isObj(p) && (typeof p.id === 'string' || typeof p.id === 'number') && p.id !== '')
 		.map((p): ColorPreset => ({ ...p, id: String(p.id), name: text(p.name, typeof p.name === 'number' ? String(p.name) : 'Untitled color'), hex: typeof p.hex === 'string' && HEX.test(p.hex) ? p.hex : null }));
 	d.palette = palette.length ? palette : defaultPalette();
@@ -202,7 +202,7 @@ export function normDoc(raw: unknown, fallbackName = 'Untitled', format: 'ob' | 
 		.filter((e) => e.end > e.start);
 	fixEraParents(d.eras);
 	d.events = (Array.isArray(d.events) ? d.events : []).filter((e) => isObj(e) && okDay(e.t))
-		.map((e): EvraEvent => ({ ...e, id: evId(e.id), side: e.side === 'a' ? 'a' : 'b', title: str(e.title), text: str(e.text), color: colorOf(e.color), file: typeof e.file === 'string' ? e.file : null }));
+		.map((e): TimelineEvent => ({ ...e, id: evId(e.id), side: e.side === 'a' ? 'a' : 'b', title: str(e.title), text: str(e.text), color: colorOf(e.color), file: typeof e.file === 'string' ? e.file : null }));
 	d.events.forEach((e) => {
 		if ('end' in e && !(okDay(e.end) && e.end > e.t)) delete e.end; // a span that ends where it starts, or before, is a moment
 		for (const k of ['os', 'oe', 'life'] as const) if (k in e && typeof e[k] !== 'boolean') delete e[k];
@@ -223,10 +223,10 @@ export function normDoc(raw: unknown, fallbackName = 'Untitled', format: 'ob' | 
 	else d.views = d.views.filter((v) => v && typeof v === 'object' && okDay(v.a) && okDay(v.b));
 	if ('lastView' in d && !(Array.isArray(d.lastView) && d.lastView.length === 2 && okDay(d.lastView[0]) && okDay(d.lastView[1]))) delete d.lastView;
 	if ('forkAt' in d && !okDay(d.forkAt)) delete d.forkAt;
-	d.range = normRange(d as EvraDoc);
+	d.range = normRange(d as TimelineDoc);
 	d.format = format;
 	d.version = 1;
-	return d as EvraDoc;
+	return d as TimelineDoc;
 }
 
 export function defaultCal(): Calendar {
@@ -234,7 +234,7 @@ export function defaultCal(): Calendar {
 }
 
 /** A new, empty timeline: ten years to start, using the saved defaults if there are any. */
-export function emptyDoc(name: string, defaults?: TimelineDefaults | null): EvraDoc {
+export function emptyDoc(name: string, defaults?: TimelineDefaults | null): TimelineDoc {
 	const d = defaults ? (JSON.parse(JSON.stringify(defaults)) as TimelineDefaults) : null;
 	return normDoc({ name, cal: d ? d.cal : defaultCal(), palette: d ? d.palette : undefined, opts: d ? d.opts : undefined, range: [0, 10], orientation: d ? d.orientation : 'ttb', cardWidth: d ? d.cardWidth : 240, eras: [], events: [] }, name);
 }
@@ -307,8 +307,8 @@ export const SAMPLE_NOTES: Record<string, string> = {
 };
 export const SAMPLE_COVER = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 70"><rect width="240" height="70" fill="#254f63"/><path d="M0 52 Q30 44 60 52 T120 52 T180 52 T240 52 V70 H0z" fill="#1d3d4d"/><path d="M112 16 L112 48 M112 18 L138 44 H112 M110 24 L90 44 H110" stroke="#e8dcc0" stroke-width="2" fill="#e8dcc0" fill-opacity=".85"/><path d="M84 48 H146 L138 56 H92z" fill="#c9a36b"/></svg>\n';
 
-export function sampleDoc(link: (name: string) => string = (n) => n): EvraDoc {
-	const e = (o: Partial<EvraEvent>): EvraEvent => ({ id: uid(), side: 'a', title: '', text: '', color: null, t: 0, ...o, file: o.file ? link(o.file) : null });
+export function sampleDoc(link: (name: string) => string = (n) => n): TimelineDoc {
+	const e = (o: Partial<TimelineEvent>): TimelineEvent => ({ id: uid(), side: 'a', title: '', text: '', color: null, t: 0, ...o, file: o.file ? link(o.file) : null });
 	const doc = normDoc({
 		name: 'Chronicle of Veld', cal: defaultCal(), range: [0, 80], orientation: 'ttb', cardWidth: 240,
 		eras: [

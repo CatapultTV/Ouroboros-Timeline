@@ -81,7 +81,7 @@ test('N6 convert to note: illegal characters, collisions, note folder', async (p
 	e = await convert(p, h, 'Plague of Salt', 'Veld');
 	t.ok(e.file && e.file !== 'Veld', 'collision gets a new name: ' + e.file);
 	t.ok(await p.ev(`app.vault.getAbstractFileByPath('Veld.md').stat.size`) > 0, 'original untouched');
-	await p.ev(`(async () => { const pl = app.plugins.plugins.evra; pl.settings.noteFolder = 'Cards/Sub/'; await pl.saveSettings(); })().then(() => 1)`);
+	await p.ev(`(async () => { const pl = app.plugins.plugins['ouroboros-timelines']; pl.settings.noteFolder = 'Cards/Sub/'; await pl.saveSettings(); })().then(() => 1)`);
 	e = await convert(p, h, 'The Great Flood');
 	t.ok(await p.ev(`!!app.vault.getAbstractFileByPath('Cards/Sub/The Great Flood.md')`), 'in the note folder');
 	t.ok(await p.ev(`!!app.metadataCache.getFirstLinkpathDest(${JSON.stringify(e.file)}, 'Chronicle of Veld.evra')`), 'link resolves: ' + e.file);
@@ -123,12 +123,12 @@ test('N9 open-note with ctrl opens a new tab; double-click opens; missing note g
 	const tabs = await p.ev(`app.workspace.getLeavesOfType('markdown').filter(l => l.view.file && l.view.file.basename === 'Fall of the River Keep').length`);
 	t.eq(tabs, 1, 'opened with ctrl');
 	await p.ev(`app.workspace.iterateRootLeaves(l => { if (l.view.getViewType() === 'markdown') l.detach(); })`); await p.sleep(300);
-	await p.ev(`app.workspace.setActiveLeaf(app.workspace.getLeavesOfType('evra')[0], {focus: true})`); await p.sleep(300);
+	await p.ev(`app.workspace.setActiveLeaf(app.workspace.getLeavesOfType('ouroboros-timelines')[0], {focus: true})`); await p.sleep(300);
 	const c = await h.card('Treaty of Sallow', '.dt'); await p.dbl(c.x, c.y); await p.sleep(800);
 	t.ok(await p.ev(`app.workspace.getLeavesOfType('markdown').some(l => l.view.file && l.view.file.basename === 'Treaty of Sallow')`), 'double-click opens');
-	t.eq(await p.ev(`app.workspace.getLeavesOfType('evra').length`), 1, 'timeline still open');
+	t.eq(await p.ev(`app.workspace.getLeavesOfType('ouroboros-timelines').length`), 1, 'timeline still open');
 	await p.ev(`app.vault.delete(app.vault.getAbstractFileByPath('Mira Ashdown.md')).then(() => 1)`); await p.sleep(500);
-	await p.ev(`app.workspace.setActiveLeaf(app.workspace.getLeavesOfType('evra')[0], {focus: true})`); await p.sleep(300);
+	await p.ev(`app.workspace.setActiveLeaf(app.workspace.getLeavesOfType('ouroboros-timelines')[0], {focus: true})`); await p.sleep(300);
 	const id = (await byFile(h, 'Mira Ashdown')).id;
 	await p.ev(`${h.tl}.focusEvent(${JSON.stringify(id)})`); await p.sleep(900);
 	await p.ev(`document.querySelector('${A} .evra-card[data-id="${id}"] [data-act=open]') && document.querySelector('${A} .evra-card[data-id="${id}"] [data-act=open]').click()`); await p.sleep(300);
@@ -284,12 +284,12 @@ test('N18 embed options: missing timeline, no option, from/to, tag, era', async 
 test('N19 embed updates when the timeline changes and a click focuses the card', async (p, h, t) => {
 	await h.open();
 	await p.ev(`app.workspace.getLeaf('split').setViewState({type: 'markdown', state: {file: 'Veld.md', mode: 'preview'}}).then(() => 1)`); await p.sleep(1200);
-	await p.ev(`(() => { const v = app.workspace.getLeavesOfType('evra')[0].view; const d = v.timeline.getDoc(); d.events.find(e => e.title === 'Siege of the Keep begins').title = 'Renamed siege'; v.timeline.setDoc(JSON.parse(JSON.stringify(d))); v.requestSave(); return v.save().then(() => 1); })()`); await p.sleep(1500);
+	await p.ev(`(() => { const v = app.workspace.getLeavesOfType('ouroboros-timelines')[0].view; const d = v.timeline.getDoc(); d.events.find(e => e.title === 'Siege of the Keep begins').title = 'Renamed siege'; v.timeline.setDoc(JSON.parse(JSON.stringify(d))); v.requestSave(); return v.save().then(() => 1); })()`); await p.sleep(1500);
 	const txt = await p.ev(`[...document.querySelectorAll('.evra-embed')].map(e => e.textContent).join(' ')`);
 	t.ok(/Renamed siege/.test(txt), 'embed updated');
 	const target = await p.ev(`(() => { const b = [...document.querySelectorAll('.evra-embed li button')].find(x => x.offsetParent && /Renamed siege/.test(x.textContent)); const r = b.getBoundingClientRect(); return {x: r.x + r.width / 2, y: r.y + r.height / 2}; })()`);
 	await p.click(target.x, target.y); await p.sleep(1500);
-	const nLeaves = await p.ev(`app.workspace.getLeavesOfType('evra').length`);
+	const nLeaves = await p.ev(`app.workspace.getLeavesOfType('ouroboros-timelines').length`);
 	const sel = await p.ev(`[...document.querySelectorAll('.evra-root .evra-card.sel')].map(c => c.getAttribute('aria-label')).join()`);
 	t.ok(/Renamed siege/.test(sel), 'card selected: ' + sel);
 	t.eq(nLeaves, 1, 'reuses the already-open timeline instead of opening a second copy');
@@ -305,10 +305,10 @@ test('N20 embed click from a closed timeline opens it at that card', async (p, h
 /* ---------- new timeline, sample, save as note ---------- */
 test('N21 folder menu New timeline, repeat names, sample twice, save as note', async (p, h, t) => {
 	await p.ev(`app.vault.createFolder('TL').then(() => 1, () => 1)`);
-	await p.ev(`app.plugins.plugins.evra.createTimeline('TL')`); await p.sleep(600);
-	await p.ev(`app.plugins.plugins.evra.createTimeline('TL')`); await p.sleep(600);
+	await p.ev(`app.plugins.plugins['ouroboros-timelines'].createTimeline('TL')`); await p.sleep(600);
+	await p.ev(`app.plugins.plugins['ouroboros-timelines'].createTimeline('TL')`); await p.sleep(600);
 	t.ok(await p.ev(`!!app.vault.getAbstractFileByPath('TL/Untitled timeline.evra') && !!app.vault.getAbstractFileByPath('TL/Untitled timeline 2.evra')`), 'two timelines in the folder');
-	await p.ev(`app.plugins.plugins.evra.createTimeline('/')`); await p.sleep(600);
+	await p.ev(`app.plugins.plugins['ouroboros-timelines'].createTimeline('/')`); await p.sleep(600);
 	t.ok(await p.ev(`!!app.vault.getAbstractFileByPath('Untitled timeline.evra')`), 'root folder');
 	await h.run('open-sample'); await p.sleep(1500);
 	await h.run('open-sample'); await p.sleep(1000);
@@ -322,7 +322,7 @@ test('N21 folder menu New timeline, repeat names, sample twice, save as note', a
 });
 test('N22 save as note from export twice', async (p, h, t) => {
 	await h.open();
-	const run = async () => { await p.ev(`app.workspace.setActiveLeaf(app.workspace.getLeavesOfType('evra')[0], {focus: true})`); await p.sleep(200); await h.openSheet('timeline'); const b = await h.sheet('[data-exp=tableNote]'); if (!b) return false; await p.click(b.x, b.y); await p.sleep(800); await p.key('Escape'); return true; };
+	const run = async () => { await p.ev(`app.workspace.setActiveLeaf(app.workspace.getLeavesOfType('ouroboros-timelines')[0], {focus: true})`); await p.sleep(200); await h.openSheet('timeline'); const b = await h.sheet('[data-exp=tableNote]'); if (!b) return false; await p.click(b.x, b.y); await p.sleep(800); await p.key('Escape'); return true; };
 	const ok = await run();
 	t.ok(ok, 'export offers save-as-note');
 	await run();
@@ -338,17 +338,17 @@ test('N23 two timelines with sync on linking the same note', async (p, h, t) => 
 	await syncOn(p, h);
 	const y1 = (await fmOf(p, 'Treaty of Sallow.md'))['timeline-year'];
 	await p.ev(`app.workspace.getLeaf('split').openFile(app.vault.getAbstractFileByPath('Other.evra')).then(() => 1)`); await p.sleep(1200);
-	const main0 = await p.ev(`(() => { const v = app.workspace.getLeavesOfType('evra').map(l => l.view).find(v => v.file.path === 'Chronicle of Veld.evra'); return v.timeline.getDoc().events.find(e => e.file === 'Treaty of Sallow').t; })()`);
+	const main0 = await p.ev(`(() => { const v = app.workspace.getLeavesOfType('ouroboros-timelines').map(l => l.view).find(v => v.file.path === 'Chronicle of Veld.evra'); return v.timeline.getDoc().events.find(e => e.file === 'Treaty of Sallow').t; })()`);
 	await p.sleep(2000);
-	const main1 = await p.ev(`(() => { const v = app.workspace.getLeavesOfType('evra').map(l => l.view).find(v => v.file.path === 'Chronicle of Veld.evra'); return v.timeline.getDoc().events.find(e => e.file === 'Treaty of Sallow').t; })()`);
+	const main1 = await p.ev(`(() => { const v = app.workspace.getLeavesOfType('ouroboros-timelines').map(l => l.view).find(v => v.file.path === 'Chronicle of Veld.evra'); return v.timeline.getDoc().events.find(e => e.file === 'Treaty of Sallow').t; })()`);
 	t.eq(main1, main0, 'opening another timeline (sync off) does not move cards; year=' + y1);
 });
 test('N24 two panes on one timeline: linking a note in one shows in the other', async (p, h, t) => {
 	await h.open();
 	await p.ev(`app.workspace.duplicateLeaf(app.workspace.activeLeaf, 'vertical').then(() => 1)`); await p.sleep(1200);
-	t.eq(await p.ev(`app.workspace.getLeavesOfType('evra').length`), 2, 'two panes');
+	t.eq(await p.ev(`app.workspace.getLeavesOfType('ouroboros-timelines').length`), 2, 'two panes');
 	await p.ev(`app.fileManager.renameFile(app.vault.getAbstractFileByPath('Treaty of Sallow.md'), 'Treaty Renamed.md').then(() => 1)`); await p.sleep(2500);
-	const links = await p.ev(`app.workspace.getLeavesOfType('evra').map(l => l.view.timeline.getDoc().events.filter(e => e.file && /Treaty/.test(e.file)).map(e => e.file).join())`);
+	const links = await p.ev(`app.workspace.getLeavesOfType('ouroboros-timelines').map(l => l.view.timeline.getDoc().events.filter(e => e.file && /Treaty/.test(e.file)).map(e => e.file).join())`);
 	t.ok(links.every((x) => x === 'Treaty Renamed'), 'both panes follow: ' + JSON.stringify(links));
 	const saved = JSON.parse(await p.ev(`app.vault.adapter.read('Chronicle of Veld.evra')`));
 	t.ok(saved.events.some((e) => e.file === 'Treaty Renamed'), 'saved');

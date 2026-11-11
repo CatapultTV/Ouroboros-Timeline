@@ -397,7 +397,7 @@ test('R6 open/close repeatedly leaves no errors and no leaks', async (p, h, t) =
 		await p.ev(`app.workspace.getLeaf(${i % 2 ? 'true' : 'false'}).openFile(app.vault.getAbstractFileByPath('Chronicle of Veld.evra')).then(() => 1)`); await p.sleep(150);
 		if (i % 3 === 0) { await p.ev(`app.workspace.activeLeaf.detach()`); await p.sleep(100); }
 	}
-	await p.ev(`app.workspace.getLeavesOfType('evra').forEach(l => l.detach())`); await p.sleep(400);
+	await p.ev(`app.workspace.getLeavesOfType('ouroboros-timelines').forEach(l => l.detach())`); await p.sleep(400);
 	t.eq(await p.ev(`document.querySelectorAll('.evra-root').length`), n0, 'roots removed');
 	const s = JSON.parse(await p.ev(`app.vault.adapter.read('Chronicle of Veld.evra')`));
 	t.ok(s.events.length > 5, 'file intact');
@@ -435,17 +435,17 @@ test('R8 monkey: hundreds of random inputs leave a valid document and no errors'
 		log.push(a);
 		if (p.errors.length) { t.ok(false, `error after step ${i} (${log.slice(-5).join(', ')}): ${p.errors[0].slice(0, 200)}`); }
 		// keep the timeline in front
-		if (i % 25 === 0) await p.ev(`(() => { document.querySelectorAll('.modal-close-button').forEach(b => b.click()); const l = app.workspace.getLeavesOfType('evra')[0]; if (l && app.workspace.activeLeaf !== l) app.workspace.setActiveLeaf(l, {focus: true}); return 1; })()`);
+		if (i % 25 === 0) await p.ev(`(() => { document.querySelectorAll('.modal-close-button').forEach(b => b.click()); const l = app.workspace.getLeavesOfType('ouroboros-timelines')[0]; if (l && app.workspace.activeLeaf !== l) app.workspace.setActiveLeaf(l, {focus: true}); return 1; })()`);
 	}
 	await p.key('Escape'); await p.key('Escape'); await p.sleep(300);
-	await p.ev(`(() => { document.querySelectorAll('.modal-close-button').forEach(b => b.click()); const l = app.workspace.getLeavesOfType('evra')[0]; app.workspace.setActiveLeaf(l, {focus: true}); return 1; })()`); await p.sleep(200);
+	await p.ev(`(() => { document.querySelectorAll('.modal-close-button').forEach(b => b.click()); const l = app.workspace.getLeavesOfType('ouroboros-timelines')[0]; app.workspace.setActiveLeaf(l, {focus: true}); return 1; })()`); await p.sleep(200);
 	const d = await h.saved();
 	t.ok(d.format === 'evra' && Array.isArray(d.events), 'valid doc');
 	t.ok(d.events.every((e) => Number.isFinite(e.t) && (e.end == null || e.end > e.t) && typeof e.title === 'string'), 'events valid');
 	t.ok(d.eras.every((e) => Number.isFinite(e.start) && e.end > e.start), 'eras valid');
 	t.ok(d.range[1] > d.range[0], 'range valid');
 });
-const reopen = async (p, h, path = 'Chronicle of Veld.evra') => { await h.saved(path); await p.ev(`app.workspace.getLeavesOfType('evra').forEach(l => l.detach())`); await p.sleep(200); await h.open(path); return h.doc(); };
+const reopen = async (p, h, path = 'Chronicle of Veld.evra') => { await h.saved(path); await p.ev(`app.workspace.getLeavesOfType('ouroboros-timelines').forEach(l => l.detach())`); await p.sleep(200); await h.open(path); return h.doc(); };
 test('S16 values typed in the panel survive a reload unchanged', async (p, h, t) => {
 	const res = [];
 	for (const [tab, sel, v, get] of [
@@ -546,7 +546,7 @@ const monkey = async (p, h, t, { seed, steps, panel, size }) => {
 		const r = rnd(), x = 2 + rnd() * (W - 4), y = 2 + rnd() * (H - 4);
 		let a;
 		// stay out of Obsidian's own chrome (window buttons, tab headers, ribbon), which would close the window or the tab
-		if (await p.ev(`(() => { const e = document.elementFromPoint(${x}, ${y}); return !e || !e.closest('.workspace-leaf.mod-active .evra-root'); })()`)) { if (++skips % 30 === 0) await p.ev(`(() => { const l = app.workspace.getLeavesOfType('evra')[0]; if (l) app.workspace.setActiveLeaf(l, {focus: true}); return 1; })()`); if (skips > 3000) break; i--; continue; }
+		if (await p.ev(`(() => { const e = document.elementFromPoint(${x}, ${y}); return !e || !e.closest('.workspace-leaf.mod-active .evra-root'); })()`)) { if (++skips % 30 === 0) await p.ev(`(() => { const l = app.workspace.getLeavesOfType('ouroboros-timelines')[0]; if (l) app.workspace.setActiveLeaf(l, {focus: true}); return 1; })()`); if (skips > 3000) break; i--; continue; }
 		if (r < 0.3) { a = `click ${x | 0},${y | 0}`; await p.click(x, y); }
 		else if (r < 0.38) { a = 'dbl'; await p.dbl(x, y); }
 		else if (r < 0.5) { a = 'drag'; const s = await h.stage(); await p.drag(x, y, s.l + rnd() * s.w, s.t + rnd() * s.h, 4); }
@@ -557,12 +557,12 @@ const monkey = async (p, h, t, { seed, steps, panel, size }) => {
 		log.push(a);
 		if (i % 25 === 0) console.log('  monkey', seed, i, a);
 		if (p.errors.length && !firstErr) firstErr = `step ${i} after [${log.slice(-6).join('; ')}]: ${p.errors[0].slice(0, 300)}`;
-		if (i % 20 === 0) await p.ev(`(() => { document.querySelectorAll('.modal-close-button').forEach(b => b.click()); const l = app.workspace.getLeavesOfType('evra')[0]; if (!l) return 0; if (app.workspace.activeLeaf !== l) app.workspace.setActiveLeaf(l, {focus: true}); return 1; })()`);
-		if (!(await p.ev(`app.workspace.getLeavesOfType('evra').length`))) await h.open();
+		if (i % 20 === 0) await p.ev(`(() => { document.querySelectorAll('.modal-close-button').forEach(b => b.click()); const l = app.workspace.getLeavesOfType('ouroboros-timelines')[0]; if (!l) return 0; if (app.workspace.activeLeaf !== l) app.workspace.setActiveLeaf(l, {focus: true}); return 1; })()`);
+		if (!(await p.ev(`app.workspace.getLeavesOfType('ouroboros-timelines').length`))) await h.open();
 	}
 	if (size) { await p.send('Emulation.setDeviceMetricsOverride', { width: p.width, height: p.height, deviceScaleFactor: 1, mobile: false }); await p.sleep(300); }
 	await p.key('Escape'); await p.key('Escape');
-	await p.ev(`(() => { document.querySelectorAll('.modal-close-button').forEach(b => b.click()); const l = app.workspace.getLeavesOfType('evra')[0]; app.workspace.setActiveLeaf(l, {focus: true}); return 1; })()`); await p.sleep(300);
+	await p.ev(`(() => { document.querySelectorAll('.modal-close-button').forEach(b => b.click()); const l = app.workspace.getLeavesOfType('ouroboros-timelines')[0]; app.workspace.setActiveLeaf(l, {focus: true}); return 1; })()`); await p.sleep(300);
 	const live = await h.doc(), d = await h.saved();
 	t.ok(!firstErr, 'console error ' + firstErr);
 	p.errors.length = 0;
@@ -581,7 +581,7 @@ test('S19 defaults carry calendar, formats, colours, card options and direction,
 	await h.openSheet('formats'); await typeInto(p, h, '[data-fmt=year]', '{Y} AV');
 	await h.openSheet('colors'); await typeInto(p, h, '[data-ph="1"]', '#0000ff');
 	await h.openSheet('timeline'); await clickSheet(p, h, '[data-o=ltr]'); await clickSheet(p, h, '[data-k=tDef]');
-	const def = await p.ev(`JSON.parse(JSON.stringify(app.plugins.plugins.evra.settings.defaults))`);
+	const def = await p.ev(`JSON.parse(JSON.stringify(app.plugins.plugins['ouroboros-timelines'].settings.defaults))`);
 	t.ok(def && !def.events && !def.eras, 'no events or eras in defaults');
 	await clickSheet(p, h, '[data-k=tNew]'); await p.sleep(1200);
 	const d = await h.doc();

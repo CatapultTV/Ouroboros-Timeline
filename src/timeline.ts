@@ -5,7 +5,7 @@ import type { TimelineHost } from './host';
 import { DEFAULT_UNITS, defaultPalette, normCal, normDoc, okDay, parseCalendarImport, PRESETS, SYNC_FIELDS } from './model';
 import { dateFromProps, noteDateOf, readsAsDate, syncValue } from './sync';
 import { DESC_MAX, inline, noteExcerpt, plainOf } from './text';
-import type { Era, EvraDoc, EvraEvent, Orientation, SavedView, Side } from './types';
+import type { Era, TimelineDoc, TimelineEvent, Orientation, SavedView, Side } from './types';
 
 /* The timeline view: one axis of time, cards on either side, eras on the line.
    Everything is drawn from the document `S` each animation frame: an SVG layer for the line, eras,
@@ -13,8 +13,8 @@ import type { Era, EvraDoc, EvraEvent, Orientation, SavedView, Side } from './ty
 
 export interface ViewState { v0: number; scale: number; x: number }
 export interface Timeline {
-	setDoc(doc: EvraDoc): void;
-	getDoc(): EvraDoc;
+	setDoc(doc: TimelineDoc): void;
+	getDoc(): TimelineDoc;
 	run(id: string): void;
 	undo(): void;
 	redo(): void;
@@ -36,11 +36,11 @@ export interface Timeline {
 
 interface Geo { W: number; H: number; vert: boolean; rev: boolean; L: number; C: number; cx: number; inb: number; ext?: { a: number; b: number } }
 interface Item {
-	ev: EvraEvent; side: Side; group?: boolean; gid?: string; year?: number; members?: EvraEvent[]; span?: boolean;
+	ev: TimelineEvent; side: Side; group?: boolean; gid?: string; year?: number; members?: TimelineEvent[]; span?: boolean;
 	a: number; b?: number; lo: number; hi: number; ra?: number; rb?: number; along?: number; len?: number; cr?: number; cOff?: number; pos?: number; offP?: number;
 }
 type Rect = [number, number, number, number];
-interface TagInfo { ev: EvraEvent; c: number; color: string; side?: Side; k?: number }
+interface TagInfo { ev: TimelineEvent; c: number; color: string; side?: Side; k?: number }
 interface Layout {
 	mode: 'full' | 'compact' | 'dots'; len?: number; offP?: number; items: Item[]; ext: { a: number; b: number };
 	ribbons: { a: Rect[]; b: Rect[] }; groups: Record<string, Item>; cross?: { a: number; b: number };
@@ -82,7 +82,7 @@ const ORIENT: Record<Orientation, { rot: number; label: string }> = {
 	ttb: { rot: 0, label: 'Top to bottom' }, btt: { rot: 180, label: 'Bottom to top' }, ltr: { rot: -90, label: 'Left to right' }, rtl: { rot: 90, label: 'Right to left' },
 };
 const DIR: Record<Orientation, string> = { ttb: 'bottom', btt: 'top', ltr: 'right', rtl: 'left' };
-const FMT_FIELDS: [string, [keyof EvraDoc['cal']['fmt'], string, string][]][] = [
+const FMT_FIELDS: [string, [keyof TimelineDoc['cal']['fmt'], string, string][]][] = [
 	['Years', [['year', 'Year', 'yearPos'], ['yearNeg', 'Years before zero', 'yearNeg']]],
 	['Dates on cards', [['dateDay', 'Exact day', 'day'], ['dateMonth', 'Month only', 'month'], ['dateYear', 'Whole year', 'whole'], ['dateInter', 'Festival days', 'inter']]],
 	['Ruler on the line', [['tickYear', 'Year marks', 'whole'], ['tickMonth', 'Month marks', 'month'], ['tickDay', 'Day marks', 'day']]],
@@ -150,9 +150,9 @@ const MARKUP = `<div class="stage" data-r="stage" tabindex="0" role="application
 </aside>`;
 
 // copied cards, with times relative to the first; shared by every open timeline, so cards can be pasted from one into another
-let clip: EvraEvent[] = null;
+let clip: TimelineEvent[] = null;
 
-export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: EvraDoc, onUndoChange: () => void): Timeline {
+export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: TimelineDoc, onUndoChange: () => void): Timeline {
 	root.addClass('evra-view', 'evra-root');
 	setHTML(root, MARKUP);
 	const $ = <T extends Element = HTMLElement>(k: string) => q1<T>(root, `[data-r="${k}"]`);
@@ -171,7 +171,7 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 	};
 
 	/* ---------- state ---------- */
-	let S: EvraDoc = initial;
+	let S: TimelineDoc = initial;
 	const E = makeEngine(() => S);
 	const { ci, yearStartT, yearOf, dpy, parts, toT, fmt, fmtRange, evDate, yearStr, monthName, genTicks, snap, stepT, eraDepths, vals } = E;
 	let savedView: ViewState | null = null;
@@ -183,7 +183,7 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 	const fresh = new Set<string>(), settling = new Set<string>();
 	const pointers = new Map<number, Local>();
 	const sigs = new WeakMap<HTMLElement, string>();
-	let EV_LIST: EvraEvent[] = [];
+	let EV_LIST: TimelineEvent[] = [];
 	let fadeOf: (id: string) => number = () => 1;
 
 	const threadsOn = () => S.opts.spanStyle !== 'blocks';
@@ -210,12 +210,12 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 	/* Per-frame memos. Note lookups go through Obsidian's metadata cache, which is quick once but not
 	   thousands of times a frame, so each is asked at most once per frame; note-derived text is kept
 	   until the note changes (its stamp). */
-	let memoTitle = new Map<string, string>(), memoAges = new Map<string, Age[]>(), memoStamp = new Map<string, number>(), memoLives: { L: EvraEvent; name: string; lname: string }[] = null;
+	let memoTitle = new Map<string, string>(), memoAges = new Map<string, Age[]>(), memoStamp = new Map<string, number>(), memoLives: { L: TimelineEvent; name: string; lname: string }[] = null;
 	let memoEpoch = -1;
-	let idx = new Map<string, EvraEvent>(), idxFor: EvraEvent[] = null, idxLen = -1;
+	let idx = new Map<string, TimelineEvent>(), idxFor: TimelineEvent[] = null, idxLen = -1;
 	const resetMemos = () => { memoTitle = new Map(); memoAges = new Map(); memoStamp = new Map(); memoLives = null; };
 	const stampOf = (link: string) => { let v = memoStamp.get(link); if (v == null) { v = host.noteStamp(link); memoStamp.set(link, v); } return v; };
-	const titleOf = (ev: EvraEvent) => {
+	const titleOf = (ev: TimelineEvent) => {
 		if (!ev.file) return ev.title || 'Untitled';
 		let v = memoTitle.get(ev.file);
 		if (v == null) { v = host.noteTitle(ev.file); memoTitle.set(ev.file, v); }
@@ -263,7 +263,7 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 	// The settings panel is redrawn only by actions that change what it shows, never merely because something was saved:
 	// redrawing it as a field loses focus would swallow the click that moved the focus.
 	function updateUndo() { onUndoChange(); }
-	const evById = (id: string): EvraEvent => {
+	const evById = (id: string): TimelineEvent => {
 		if (idxFor !== S.events || idxLen !== S.events.length) { idx = new Map(S.events.map((e) => [e.id, e])); idxFor = S.events; idxLen = S.events.length; }
 		return idx.get(id);
 	};
@@ -340,7 +340,7 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 
 	/* ---------- cards: size and stacking ----------
 	   Cards sit exactly at their date. Overlaps stack outward into columns (side by side on a vertical line, rows on a horizontal one). */
-	const noteSrc = (ev: EvraEvent) => (ev.file ? host.noteText(ev.file) || '' : '');
+	const noteSrc = (ev: TimelineEvent) => (ev.file ? host.noteText(ev.file) || '' : '');
 	const noteCache = new Map<string, { stamp: number; desc: string; plain: string; cover: string | null }>();
 	function noteInfo(link: string) {
 		const stamp = stampOf(link), hit = noteCache.get(link);
@@ -351,8 +351,8 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 		noteCache.set(link, info);
 		return info;
 	}
-	function descOf(ev: EvraEvent): string { return ev.file ? noteInfo(ev.file).desc : ev.text || ''; }
-	const plainDesc = (ev: EvraEvent) => (ev.file ? noteInfo(ev.file).plain : plainOf(ev.text || '').trim());
+	function descOf(ev: TimelineEvent): string { return ev.file ? noteInfo(ev.file).desc : ev.text || ''; }
+	const plainDesc = (ev: TimelineEvent) => (ev.file ? noteInfo(ev.file).plain : plainOf(ev.text || '').trim());
 	let measureFont = '', lastFont = '', family = '', scale = 1;
 	// read once (cssChanged clears family): asking for styles mid-frame forces a recalculation
 	const uiFamily = () => {
@@ -379,9 +379,9 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 		measureCache.set(k, lines);
 		return lines;
 	};
-	function descLines(ev: EvraEvent, width: number) { const d = plainDesc(ev); return d ? Math.min(S.opts.cardLines, measure(d, width - 24)) : 0; }
-	const coverOf = (ev: EvraEvent) => (ev.file ? noteInfo(ev.file).cover : null);
-	function cardSize(ev: EvraEvent, width: number) {
+	function descLines(ev: TimelineEvent, width: number) { const d = plainDesc(ev); return d ? Math.min(S.opts.cardLines, measure(d, width - 24)) : 0; }
+	const coverOf = (ev: TimelineEvent) => (ev.file ? noteInfo(ev.file).cover : null);
+	function cardSize(ev: TimelineEvent, width: number) {
 		const n = descLines(ev, width);
 		const k = fontScale();
 		return Math.round(scaledBaseH() + (n ? n * scaledLineH() + 3 * k : 0) + (((ev.tags || []).length ? 19 : 0) + (ev.rel ? 17 : 0) + (agesOf(ev).length ? 20 : 0)) * k + (coverOf(ev) ? 70 : 0));
@@ -403,7 +403,7 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 			let single = evs.filter((e) => e.end == null);
 			const grps: Item[] = [];
 			if (grouping) {
-				const byYear = new Map<number, EvraEvent[]>();
+				const byYear = new Map<number, TimelineEvent[]>();
 				single.forEach((ev) => { if (ev.id === loose) return; const k = yearOf(ev.t); if (!byYear.has(k)) byYear.set(k, []); byYear.get(k).push(ev); });
 				for (const [yr, list] of byYear) if (S.opts.groupOver > 0 && list.length > S.opts.groupOver) {
 					list.sort((p, q) => p.t - q.t);
@@ -539,7 +539,7 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 	   just past the ruler and era rail, and stops short of the zoom controls. Only the display changes; each card keeps its side. */
 	let narrow = false;
 	const rulerW = () => (narrow ? RULER_N : RULER);
-	const sideOf = (e: EvraEvent): Side => (narrow ? 'b' : e.side);
+	const sideOf = (e: TimelineEvent): Side => (narrow ? 'b' : e.side);
 	/** Where the line sits across the view (before scrolling across), and the room kept free on the far side. */
 	function crossHome(): [number, number] {
 		if (!narrow && G.vert) return [G.C / 2, 16];
@@ -798,7 +798,7 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 
 		// stems: straight out from the moment to its card
 		const visItems = items.filter((it) => it.hi > -120 && it.lo < L + 120);
-		const threadOut: SvgEl[] = [], bundleHits: { ev: EvraEvent; side: Side; ps: number; pe: number }[] = [];
+		const threadOut: SvgEl[] = [], bundleHits: { ev: TimelineEvent; side: Side; ps: number; pe: number }[] = [];
 		LY.tags = { a: [], b: [] };
 		if (threadsOn()) {
 			// Each span is a thread: it peels off the line at its start, runs in its lane, and rejoins at its end.
@@ -987,7 +987,7 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 		const rows = it.members.slice(0, 3).map((m) => `<div class="gr"><i class="sw" style="--cc:${col(m.color)}"></i><span>${esc(titleOf(m))}</span></div>`).join('');
 		return `<div class="ch"><span class="gi">${ICON.stack}</span><span class="tt">${esc(yr)}</span><span class="gn">${n} events</span></div><div class="gl">${rows}${n > 3 ? `<div class="gm">+ ${n - 3} more</div>` : ''}</div>`;
 	}
-	function cardHTML(ev: EvraEvent, mode = lod, forEdit = false) {
+	function cardHTML(ev: TimelineEvent, mode = lod, forEdit = false) {
 		const linked = !!ev.file, title = titleOf(ev), date = evDate(ev) + (sec().on && sec().onCards ? ` · ${secLabel(secYear(ev.t))}` : '');
 		if (mode === 'compact') return `${ev.icon ? `<i class="sw ic">${esc(ev.icon)}</i>` : '<i class="sw"></i>'}<span class="tt">${esc(title)}</span><span class="dt">${esc(date)}</span><button class="mb" data-act="menu" aria-label="Card options" tabindex="-1">${ICON.dots}</button>`; // the menu button shows once selected: touch has no hover to peek
 		const icon = linked ? `<button class="ln" data-act="open" aria-label="Open note" tabindex="-1">${ICON.note}</button>` : '';
@@ -1209,7 +1209,7 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 		const evs = selIds().map(evById);
 		if (!evs.length) return;
 		const t0 = Math.min(...evs.map((e) => e.t));
-		clip = evs.map((e) => ({ ...(JSON.parse(JSON.stringify(e)) as EvraEvent), t: e.t - t0, end: e.end != null ? e.end - t0 : undefined }));
+		clip = evs.map((e) => ({ ...(JSON.parse(JSON.stringify(e)) as TimelineEvent), t: e.t - t0, end: e.end != null ? e.end - t0 : undefined }));
 		copyText(evs.map((e) => `${e.end != null ? fmtRange(e) : fmt(e.t)}  ${titleOf(e)}`).join('\n'));
 		toast(evs.length === 1 ? 'Copied 1 card' : `Copied ${evs.length} cards`);
 	}
@@ -1219,10 +1219,10 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 		toast(ids.length === 1 ? 'Pasted 1 card' : `Pasted ${ids.length} cards`, true);
 	}
 	/** New cards from a copy (dates relative to its first card), placed from base on; selects them and records one step. */
-	function addClip(list: EvraEvent[], base: number) {
+	function addClip(list: TimelineEvent[], base: number) {
 		const before = snapshot(), ids: string[] = [];
 		list.forEach((c) => {
-			const ev: EvraEvent = { ...(JSON.parse(JSON.stringify(c)) as EvraEvent), id: uid(), t: base + c.t };
+			const ev: TimelineEvent = { ...(JSON.parse(JSON.stringify(c)) as TimelineEvent), id: uid(), t: base + c.t };
 			if (c.end != null) ev.end = base + c.end; else delete ev.end;
 			delete ev.rel;
 			if (ev.color && !S.palette.some((p) => p.id === ev.color)) ev.color = null; // from a timeline with other colors
@@ -1272,7 +1272,7 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 	// A card pinned to another follows it when it moves. Moving the pinned card itself just changes the gap.
 	function resolveRel() {
 		const done = new Set<string>(), busy = new Set<string>();
-		const visit = (ev: EvraEvent) => {
+		const visit = (ev: TimelineEvent) => {
 			if (!ev || !ev.rel || done.has(ev.id)) return;
 			if (busy.has(ev.id)) { delete ev.rel; return; } // a loop: drop the pin
 			busy.add(ev.id);
@@ -1288,13 +1288,13 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 		};
 		S.events.forEach(visit);
 	}
-	const dependsOn = (ev: EvraEvent, id: string) => { for (let x = ev, g = 0; x && x.rel && g < 200; g++) { if (x.rel.to === id) return true; x = evById(x.rel.to); } return false; };
+	const dependsOn = (ev: TimelineEvent, id: string) => { for (let x = ev, g = 0; x && x.rel && g < 200; g++) { if (x.rel.to === id) return true; x = evById(x.rel.to); } return false; };
 	function humanGap(days: number) {
 		const c = ci(), a = Math.abs(days), y = Math.floor(a / c.Yavg), mo = c.M > 1 ? Math.floor((a - y * c.Yavg) / c.avgM) : 0, d = Math.round(a - y * c.Yavg - mo * c.avgM), u = S.cal.units;
 		const pl = (n: number, one: string, many?: string) => `${n} ${n === 1 ? one : many || one + 's'}`;
 		return [y && pl(y, u.year, u.years), mo && pl(mo, u.month), !y && !mo && pl(d, u.day)].filter(Boolean).slice(0, 2).join(', ') || 'the same day as';
 	}
-	function relText(ev: EvraEvent) {
+	function relText(ev: TimelineEvent) {
 		const a = ev.rel && evById(ev.rel.to);
 		if (!a) return '';
 		const g = ev.rel.offset, name = titleOf(a), edge = ev.rel.from === 'end' ? ' ends' : '';
@@ -1311,7 +1311,7 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 		linkSets.set(link, { stamp, set });
 		return set;
 	};
-	function agesOf(ev: EvraEvent): Age[] {
+	function agesOf(ev: TimelineEvent): Age[] {
 		if (ev.life) return [];
 		const hit = memoAges.get(ev.id);
 		if (hit) return hit;
@@ -1338,7 +1338,7 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 	const FLT = { q: '', colors: new Set<string>(), tags: new Set<string>(), era: '', side: '', link: '', mode: 'dim' };
 	type FltKey = 'side' | 'link' | 'mode';
 	const filterOn = () => !!(FLT.q || FLT.colors.size || FLT.tags.size || FLT.era || FLT.side || FLT.link);
-	function matches(ev: EvraEvent) {
+	function matches(ev: TimelineEvent) {
 		if (FLT.q) { const q = FLT.q.toLowerCase(); if (![ev.file ? titleOf(ev) : '', ev.title, plainOf(descOf(ev)), ...(ev.tags || [])].some((x) => x && String(x).toLowerCase().includes(q))) return false; }
 		if (FLT.colors.size && !FLT.colors.has(ev.color || 'none')) return false;
 		if (FLT.tags.size && !(ev.tags || []).some((t) => FLT.tags.has(t))) return false;
@@ -1753,7 +1753,7 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 			const side: Side = Math.abs(L.c) < 14 ? 'b' : L.c < 0 ? 'a' : 'b', len = Math.max(Math.round(dpy()), snap((G.L * 0.15) / V.scale));
 			q1(p, '[data-m=addspan]').onclick = () => {
 				closePop();
-				const before = snapshot(), ev: EvraEvent = { id: uid(), t, end: t + len, side, title: 'New span', text: '', color: null, file: null };
+				const before = snapshot(), ev: TimelineEvent = { id: uid(), t, end: t + len, side, title: 'New span', text: '', color: null, file: null };
 				fresh.add(ev.id); S.events.push(ev); ensureRange(ev); sel = ev.id; commit(before);
 				justAdded = { id: ev.id, before };
 				raf(() => startEdit(ev.id));
@@ -1776,7 +1776,7 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 		const links = host.linksFromDrop(e);
 		if (!links.length || !G) return;
 		const L = local(e), before = snapshot(), t = snap(tAt(L.s)), side: Side = Math.abs(L.c) < 14 ? 'b' : L.c < 0 ? 'a' : 'b', ids: string[] = [];
-		links.forEach((link) => { const ev: EvraEvent = { id: uid(), t, side, title: '', text: '', color: null, file: link }; fresh.add(ev.id); S.events.push(ev); ensureRange(ev); ids.push(ev.id); });
+		links.forEach((link) => { const ev: TimelineEvent = { id: uid(), t, side, title: '', text: '', color: null, file: link }; fresh.add(ev.id); S.events.push(ev); ensureRange(ev); ids.push(ev.id); });
 		setSel(ids); commit(before);
 		toast(links.length === 1 ? `Linked “${host.noteTitle(links[0])}”` : `Linked ${links.length} notes`, true);
 	});
@@ -1786,12 +1786,12 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 	// cut to n UTF-16 units without splitting an emoji in half
 	const cut = (x: string, n: number) => (x.length <= n ? x : x.slice(0, /[\uD800-\uDBFF]/.test(x[n - 1]) ? n - 1 : n));
 	function addEvent(t: number, side: Side) {
-		const before = snapshot(), ev: EvraEvent = { id: uid(), t, side, title: 'New event', text: '', color: null, file: null };
+		const before = snapshot(), ev: TimelineEvent = { id: uid(), t, side, title: 'New event', text: '', color: null, file: null };
 		fresh.add(ev.id); S.events.push(ev); ensureRange(ev); sel = ev.id; commit(before);
 		justAdded = { id: ev.id, before };
 		raf(() => startEdit(ev.id));
 	}
-	function zoomToEvent(ev: EvraEvent, cb?: () => void) {
+	function zoomToEvent(ev: TimelineEvent, cb?: () => void) {
 		if (!ev) return;
 		if (ev.end != null && !ev.oe) { fitRange(ev.t, ev.end, cb); return; }
 		animView(ev.t, Math.max(V.scale, G.L / (dpy() * 6)), cb);
@@ -2026,7 +2026,7 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 		const step = (fn: () => void) => { const before = snapshot(); fn(); commit(before); };
 		// commit without a snapshot records no undo step, so at least make sure the change is saved
 		const commitOrSave = (before: string) => { commit(before); if (!before) host.requestSave(); };
-		const calStep = (fn: () => void) => step(() => { const old = JSON.parse(JSON.stringify(S.cal)) as EvraDoc['cal']; fn(); normCal(S.cal); E.reset(); if (keepDates) E.remapDates(old, S.cal); });
+		const calStep = (fn: () => void) => step(() => { const old = JSON.parse(JSON.stringify(S.cal)) as TimelineDoc['cal']; fn(); normCal(S.cal); E.reset(); if (keepDates) E.remapDates(old, S.cal); });
 		// redraw: labels elsewhere in the panel use this value, so draw it again once the edit is done
 		const liveText = (el: HTMLInputElement | HTMLTextAreaElement, apply: (v: string) => void, after?: () => void, redraw = false) => {
 			let before: string = null;
@@ -2162,7 +2162,7 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 			step(() => { S.range = [yearOf(cb[0]), Math.max(yearOf(cb[0]) + 1, yearStartT(yearOf(cb[1])) === cb[1] ? yearOf(cb[1]) : yearOf(cb[1]) + 1)]; });
 			renderSheet(); fitAll();
 		};
-		qq('[data-snap]').forEach((b) => (b.onclick = () => { step(() => { S.opts.snapTo = b.dataset.snap as EvraDoc['opts']['snapTo']; }); renderSheet(); }));
+		qq('[data-snap]').forEach((b) => (b.onclick = () => { step(() => { S.opts.snapTo = b.dataset.snap as TimelineDoc['opts']['snapTo']; }); renderSheet(); }));
 		const nws = k('nwSet');
 		if (nws) {
 			nws.onclick = () => { const t = readDate(sheetBody, 'nw'); if (t != null) { setNow(t); renderSheet(); } };
@@ -2238,9 +2238,9 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 		// notes
 		const syOn = k<HTMLInputElement>('syOn');
 		if (syOn) syOn.onchange = () => { step(() => { S.opts.sync.on = syOn.checked; }); renderSheet(); if (syOn.checked) toast('Linked notes now carry timeline properties.'); };
-		qq<HTMLInputElement>('[data-syf]').forEach((b) => (b.onchange = () => { step(() => { S.opts.sync.fields[b.dataset.syf as keyof EvraDoc['opts']['sync']['fields']].on = b.checked; }); renderSheet(); }));
+		qq<HTMLInputElement>('[data-syf]').forEach((b) => (b.onchange = () => { step(() => { S.opts.sync.fields[b.dataset.syf as keyof TimelineDoc['opts']['sync']['fields']].on = b.checked; }); renderSheet(); }));
 		qq<HTMLInputElement>('[data-syk]').forEach((el) => (el.onchange = () => {
-			const key = el.dataset.syk as keyof EvraDoc['opts']['sync']['fields'], v = el.value.trim().replace(/\s+/g, '-');
+			const key = el.dataset.syk as keyof TimelineDoc['opts']['sync']['fields'], v = el.value.trim().replace(/\s+/g, '-');
 			if (!v) { el.value = S.opts.sync.fields[key].key; toast('A property needs a name.'); return; }
 			step(() => { S.opts.sync.fields[key].key = v; }); renderSheet();
 		}));
@@ -2482,7 +2482,7 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 	function createFromNotes(list: { link: string; t: number }[]) {
 		if (!list.length) return;
 		const b = snapshot(), ids: string[] = [];
-		list.forEach((x, i) => { const ev: EvraEvent = { id: uid(), t: x.t, side: i % 2 ? 'a' : 'b', title: '', text: '', color: null, file: x.link }; fresh.add(ev.id); S.events.push(ev); ensureRange(ev); ids.push(ev.id); });
+		list.forEach((x, i) => { const ev: TimelineEvent = { id: uid(), t: x.t, side: i % 2 ? 'a' : 'b', title: '', text: '', color: null, file: x.link }; fresh.add(ev.id); S.events.push(ev); ensureRange(ev); ids.push(ev.id); });
 		setSel(ids); commit(b);
 		toast(`Created ${ids.length} card${ids.length === 1 ? '' : 's'} from notes.`, true);
 		zoomToSelection();
@@ -2503,7 +2503,7 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 	}
 
 	/* ---------- export ---------- */
-	const linkOrTitle = (e: EvraEvent) => (e.file ? `[[${e.file}${host.noteTitle(e.file) !== e.file ? '|' + host.noteTitle(e.file) : ''}]]` : e.title || 'Untitled');
+	const linkOrTitle = (e: TimelineEvent) => (e.file ? `[[${e.file}${host.noteTitle(e.file) !== e.file ? '|' + host.noteTitle(e.file) : ''}]]` : e.title || 'Untitled');
 	function exportMarkdownTable() {
 		return '| Date | Event | Side | Tags |\n|---|---|---|---|\n' + [...S.events].sort((a, b) => a.t - b.t)
 			.map((e) => `| ${evDate(e)} | ${linkOrTitle(e).replace(/\|/g, '\\|')} | ${e.side === 'a' ? (G.vert ? 'Left' : 'Top') : G.vert ? 'Right' : 'Bottom'} | ${(e.tags || []).map((t) => '#' + t).join(' ')} |`).join('\n');
@@ -2562,7 +2562,7 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 			closePop(); toast('Added a color preset. Rename it in Settings → Colors.');
 		};
 	}
-	function openCardMenu(ev: EvraEvent, at: At) {
+	function openCardMenu(ev: TimelineEvent, at: At) {
 		// one-sided on a phone, there's no other side to see: no Move to other side there
 		const flipBtn = narrow ? '' : '<button data-m="flip">Move to other side</button>';
 		const span = ev.end != null, many = selIds().length > 1 && selIds().includes(ev.id) ? selIds().map(evById) : null;
@@ -2630,7 +2630,7 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 			})()));
 			on('dup', () => {
 				closePop();
-				const before = snapshot(), c: EvraEvent = { ...(JSON.parse(JSON.stringify(ev)) as EvraEvent), id: uid(), t: dupT(ev.t) };
+				const before = snapshot(), c: TimelineEvent = { ...(JSON.parse(JSON.stringify(ev)) as TimelineEvent), id: uid(), t: dupT(ev.t) };
 				if (c.end != null) c.end += c.t - ev.t;
 				fresh.add(c.id); S.events.push(c); ensureRange(c); sel = c.id; commit(before);
 			});
@@ -2712,7 +2712,7 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 			q1(p, '[data-m=span]').onclick = () => {
 				closePop();
 				const before = snapshot(), side: Side = S.events.filter((x) => x.side === 'a').length < S.events.filter((x) => x.side === 'b').length ? 'a' : 'b';
-				const ev: EvraEvent = { id: uid(), t: a, end: b, side, title: 'New span', text: '', color: null, file: null };
+				const ev: TimelineEvent = { id: uid(), t: a, end: b, side, title: 'New span', text: '', color: null, file: null };
 				fresh.add(ev.id); S.events.push(ev); sel = ev.id; commit(before);
 				justAdded = { id: ev.id, before };
 				raf(() => startEdit(ev.id));
@@ -2864,7 +2864,7 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 	invalidate();
 
 	return {
-		setDoc(d: EvraDoc) {
+		setDoc(d: TimelineDoc) {
 			if (JSON.stringify(d) === snapshot()) return;
 			const first = !started;
 			// the file changed under us: a drag or an open menu would go on editing events that are gone
@@ -2905,7 +2905,7 @@ export function mountTimeline(root: HTMLElement, host: TimelineHost, initial: Ev
 			const olds = [...moves.keys()].map((f) => JSON.stringify(f));
 			const fix = (json: string) => {
 				if (!olds.some((f) => json.includes(f))) return json;
-				const d = JSON.parse(json) as EvraDoc;
+				const d = JSON.parse(json) as TimelineDoc;
 				d.events.forEach((e) => { const to = e.file && moves.get(e.file); if (to) e.file = to; });
 				return JSON.stringify(d);
 			};

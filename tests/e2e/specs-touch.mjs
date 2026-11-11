@@ -300,7 +300,7 @@ phoneTest('phone: cards stay inside the stage and clear of the ruler labels', as
 });
 
 /* ---------- popout window ---------- */
-test('popout: a timeline opens in a popout window and responds', async (p, h, t) => { try { await popout(p, h, t); } finally { await p.ev(`(() => { app.workspace.getLeavesOfType('evra').filter(l => l.view.containerEl.win !== window).forEach(l => l.detach()); return 1; })()`); await p.sleep(400); } });
+test('popout: a timeline opens in a popout window and responds', async (p, h, t) => { try { await popout(p, h, t); } finally { await p.ev(`(() => { app.workspace.getLeavesOfType('ouroboros-timelines').filter(l => l.view.containerEl.win !== window).forEach(l => l.detach()); return 1; })()`); await p.sleep(400); } });
 async function popout(p, h, t) {
 	const ok = await p.ev(`(async () => { try { const leaf = app.workspace.openPopoutLeaf(); await leaf.openFile(app.vault.getAbstractFileByPath('Chronicle of Veld.evra')); const w = leaf.view.containerEl.win; try { w.resizeTo(1200, 800); } catch {} await new Promise(r => setTimeout(r, 1500)); const st = leaf.view.containerEl.querySelector('.stage'); return { ok: true, sameWin: w === window, cards: leaf.view.containerEl.querySelectorAll('.evra-card').length, hasTl: !!leaf.view.timeline, inner: [w.innerWidth, w.innerHeight], stage: st ? [st.clientWidth, st.clientHeight] : null, err: leaf.view.containerEl.querySelector('.evra-error')?.textContent }; } catch (e) { return { ok: false, err: String(e) }; } })()`);
 	console.log('    popout:', JSON.stringify(ok));
@@ -310,7 +310,7 @@ async function popout(p, h, t) {
 	t.ok(ok.cards > 3, 'cards render in the popout');
 	const targets = await (await fetch(`http://127.0.0.1:${await p.ev('0') || 0}/json`).catch(() => null));
 	// act on the popout's DOM from the main renderer (same process, window object reachable)
-	const res = await p.ev(`(async () => { const leaf = app.workspace.getLeavesOfType('evra').find(l => l.view.containerEl.win !== window); const W = leaf.view.containerEl.win, D = W.document, root = leaf.view.containerEl.querySelector('.evra-root'); const out = {};
+	const res = await p.ev(`(async () => { const leaf = app.workspace.getLeavesOfType('ouroboros-timelines').find(l => l.view.containerEl.win !== window); const W = leaf.view.containerEl.win, D = W.document, root = leaf.view.containerEl.querySelector('.evra-root'); const out = {};
 		const s = root.querySelector('.stage'); const sr = s.getBoundingClientRect(); out.stage = [sr.width, sr.height];
 		// settings button click
 		root.querySelector('[data-c=settings]').click(); await new Promise(r => setTimeout(r, 300)); out.sheet = !root.querySelector('[data-r=sheet]').hidden;

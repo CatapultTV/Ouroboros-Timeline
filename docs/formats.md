@@ -1,6 +1,6 @@
 # Date formats
 
-Every date label Evra shows comes from a template. You can edit the templates in **Settings → Formats**. Each field shows a live preview. To insert a token, click it in the token list and it goes into the field you last edited.
+Every date label Ouroboros shows comes from a template. You can edit the templates in **Settings → Formats**. Each field shows a live preview. To insert a token, click it in the token list and it goes into the field you last edited.
 
 ## Tokens
 

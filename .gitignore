@@ -4,6 +4,7 @@ main.js
 data.json
 test-dist/
 test-vault/.obsidian/plugins/evra/
+test-vault/.obsidian/plugins/ouroboros-timelines/
 test-vault/.obsidian/workspace*.json
 .DS_Store
 test-vault/Aerth/

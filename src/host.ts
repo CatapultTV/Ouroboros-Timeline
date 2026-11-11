@@ -1,4 +1,4 @@
-import type { EvraDoc, TimelineDefaults } from './types';
+import type { TimelineDoc, TimelineDefaults } from './types';
 
 /** What a timeline needs from Obsidian: saving, notes, and a few actions outside the view. */
 export interface TimelineHost {
@@ -33,8 +33,8 @@ export interface TimelineHost {
 	/** Same note? Links may be written differently. */
 	sameNote(a: string, b: string): boolean;
 
-	syncNotes(doc: EvraDoc): void;
-	stripSyncedProps(doc: EvraDoc): Promise<number>;
+	syncNotes(doc: TimelineDoc): void;
+	stripSyncedProps(doc: TimelineDoc): Promise<number>;
 
 	saveDefaults(d: TimelineDefaults): Promise<void>;
 	newTimeline(): void;

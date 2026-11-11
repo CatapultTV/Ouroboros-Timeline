@@ -31,7 +31,7 @@ On touch screens, press and hold empty space for the right-click menu.
 | Keys | Action |
 |---|---|
 | Ctrl/⌘ K or / | Search cards, eras and notes, or type a date |
-| Ctrl/⌘ P | Obsidian's command palette, with every Evra command |
+| Ctrl/⌘ P | Obsidian's command palette, with every Ouroboros Timelines command |
 | N | New event at the pointer |
 | E or ↵ | Edit the selected card |
 | ↵ (in a description) | Save, and start the next event |
@@ -58,7 +58,7 @@ On touch screens, press and hold empty space for the right-click menu.
 
 ## Commands
 
-Every command below is available in Obsidian's command palette. None have default hotkeys. You can assign your own in **Settings → Hotkeys** (search for "Evra").
+Every command below is available in Obsidian's command palette. None have default hotkeys. You can assign your own in **Settings → Hotkeys** (search for "Ouroboros Timelines").
 
 - **New timeline**
 - **Open the sample timeline**

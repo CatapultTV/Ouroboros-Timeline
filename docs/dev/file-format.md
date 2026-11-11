@@ -1,12 +1,12 @@
 # Ouroboros `.ob` file format (version 1)
 
-Ouroboros Timelines uses its native `.ob` format with `"format": "ob"` and version `1`. Legacy Evra `.evra` files with `"format": "evra"` remain available when **Enable Evra compatibility** is enabled. They are read and written through the legacy compatibility path and are never silently converted.
+Ouroboros Timelines uses its native `.ob` format with `"format": "ob"` and version `1`. Legacy Evra `.evra` files with `"format": "evra"` remain available when **Enable legacy timeline compatibility** is enabled. They are read and written through the legacy compatibility path and are never silently converted.
 
 A timeline is a single UTF-8 JSON file with the `.ob` extension, indented with tabs. It is readable, diffable and safe to edit by hand. Ouroboros fills in anything missing when it opens a file. If a file isn't valid JSON, Ouroboros shows a message and leaves the file untouched.
 
 ## Dates
 
-Every date is an integer: the number of days since day 1 of year 0 of the timeline's own calendar. Negative numbers are before year 0. The calendar (months, leap rules) decides which day number falls on which named date. To keep every event on the same named day when the calendar changes, Evra rewrites the stored numbers.
+Every date is an integer: the number of days since day 1 of year 0 of the timeline's own calendar. Negative numbers are before year 0. The calendar (months, leap rules) decides which day number falls on which named date. To keep every event on the same named day when the calendar changes, Ouroboros rewrites the stored numbers.
 
 Year numbers in `range` and in `from` and `to` in embeds are the calendar's internal year numbers, before `yearStart` is added.
 
@@ -29,7 +29,7 @@ Year numbers in `range` and in `from` and `to` in embeds are the calendar's inte
 	"views": [ … ],            // optional: saved views
 	"lastView": [10440, 16920],// optional: the starting view for a new window (days)
 
-	// Reserved for sub-timelines (planned). Evra keeps these but doesn't use them yet.
+	// Reserved for sub-timelines (planned). Ouroboros keeps these fields but does not use them yet.
 	"parent": "[[World]]",     // a link to the parent timeline
 	"kind": "scope",           // "scope" (a part of the parent) or "branch" (a fork)
 	"forkAt": 12000            // for branches: the day the branch splits off
@@ -138,6 +138,6 @@ A leap rule adds `days` to month `month` in year *y* when *y* − `off` is a mul
 ## Compatibility
 
 - Later versions of format 1 will only add optional fields.
-- Evra keeps fields it doesn't recognize.
+- Ouroboros keeps fields it does not recognize.
 - A change that older versions couldn't read would raise `version`.
 - Ouroboros won't open a file with a higher `version` than it knows, or with a format other than the format selected by its extension. It shows why and leaves the file untouched: it never rewrites an unreadable or unsupported file. A legacy file with no `format` or `version` is read as Evra version 1.

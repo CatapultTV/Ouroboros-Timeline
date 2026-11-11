@@ -83,13 +83,13 @@ Its years appear on a second ruler, in the accent color, on the far side of the 
 
 ## Importing
 
-To reuse a calendar from another plugin or app, paste its export into **Import** and click **Import calendar**. Evra reads the months (with festival months), leap days and weekdays from:
+To reuse a calendar from another plugin or app, paste its export into **Import** and click **Import calendar**. Ouroboros reads the months (with festival months), leap days and weekdays from:
 
 - **Calendarium** (Obsidian plugin): a calendar exported as JSON.
 - **Fantasy-Calendar** (fantasy-calendar.com): the JSON export.
 
-Moons, seasons and events aren't imported. Evra has no use for them yet.
+Moons, seasons and events aren't imported. Ouroboros has no use for them yet.
 
 ## Saving a calendar for new timelines
 
-Once a calendar is set up the way you like, go to **Settings → Timeline → Defaults** and choose **Use these settings for new timelines**. Every new timeline will start with this calendar, its formats, its colors and its card options. You can forget the saved settings in Obsidian's **Settings → Evra Timelines**.
+Once a calendar is set up the way you like, go to **Settings → Timeline → Defaults** and choose **Use these settings for new timelines**. Every new timeline will start with this calendar, its formats, its colors and its card options. You can forget the saved settings in Obsidian's **Settings → Ouroboros Timelines**.

@@ -5,8 +5,10 @@ import { cpSync, mkdtempSync, rmSync, writeFileSync, existsSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 
-const ELECTRON = process.env.OBSIDIAN_ELECTRON || '/usr/lib/electron43/electron';
-const ASAR = process.env.OBSIDIAN_ASAR || '/usr/lib/obsidian/app.asar';
+const windows = process.platform === 'win32';
+const obsidianRoot = join(process.env.LOCALAPPDATA || '', 'Programs', 'Obsidian');
+const ELECTRON = process.env.OBSIDIAN_ELECTRON || (windows ? join(obsidianRoot, 'Obsidian.exe') : '/usr/lib/electron43/electron');
+const ASAR = process.env.OBSIDIAN_ASAR || (windows ? join(obsidianRoot, 'resources', 'app.asar') : '/usr/lib/obsidian/app.asar');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function connect(url, onEvent) {
@@ -24,12 +26,12 @@ function connect(url, onEvent) {
 
 export async function launch({ vault = 'test-vault', theme = 'light', width = 1440, height = 900 } = {}) {
 	if (!existsSync(ELECTRON) || !existsSync(ASAR)) throw new Error(`Obsidian not found. Set OBSIDIAN_ELECTRON and OBSIDIAN_ASAR (looked for ${ELECTRON} and ${ASAR}).`);
-	const work = mkdtempSync(join(tmpdir(), 'evra-e2e-'));
+	const work = mkdtempSync(join(tmpdir(), 'ouroboros-e2e-'));
 	const vaultDir = join(work, 'vault');
 	cpSync(vault, vaultDir, { recursive: true });
 	rmSync(join(vaultDir, '.obsidian/workspace.json'), { force: true });
 	const port = 9700 + Math.floor(Math.random() * 1000);
-	const proc = spawn(ELECTRON, ['--ozone-platform=headless', '--disable-gpu', `--user-data-dir=${join(work, 'profile')}`, `--remote-debugging-port=${port}`, ASAR], { stdio: 'ignore' });
+	const proc = spawn(ELECTRON, [windows ? '--headless=new' : '--ozone-platform=headless', '--disable-gpu', `--user-data-dir=${join(work, 'profile')}`, `--remote-debugging-port=${port}`, ASAR], { stdio: 'ignore' });
 	const errors = [];
 	const targets = async () => {
 		for (let i = 0; i < 80; i++) { try { const l = await (await fetch(`http://127.0.0.1:${port}/json`)).json(); if (l.length) return l; } catch { /* starting */ } await sleep(250); }
@@ -56,7 +58,7 @@ export async function launch({ vault = 'test-vault', theme = 'light', width = 14
 		return r.result.result?.value;
 	};
 	for (let i = 0; i < 80 && !(await ev('!!(window.app && app.workspace && app.workspace.layoutReady)').catch(() => false)); i++) await sleep(250);
-	await ev(`(async () => { app.plugins.setEnable(true); await app.plugins.loadManifests(); await app.plugins.enablePluginAndSave('evra'); app.changeTheme(${JSON.stringify(theme === 'dark' ? 'obsidian' : 'moonstone')}); })().then(() => 1)`);
+	await ev(`(async () => { app.plugins.setEnable(true); await app.plugins.loadManifests(); await app.plugins.enablePluginAndSave('ouroboros-timelines'); app.changeTheme(${JSON.stringify(theme === 'dark' ? 'obsidian' : 'moonstone')}); })().then(() => 1)`);
 	// a fresh vault with plugins asks whether to trust its author: say yes, then close anything left open
 	for (let i = 0; i < 20; i++) {
 		const done = await ev(`(() => { const b = [...document.querySelectorAll('.modal button')].find(b => /trust/i.test(b.textContent)); if (b) { b.click(); return true; } return false; })()`).catch(() => false);

@@ -1,6 +1,6 @@
 import { clamp, eraAbbr, saneYear, str, type Engine } from './engine';
 import { SYNC_FIELDS } from './model';
-import type { EvraDoc, EvraEvent, SyncKey } from './types';
+import type { TimelineDoc, TimelineEvent, SyncKey } from './types';
 
 /* Note properties (optional, off by default).
    When turned on, each linked note gets timeline properties in its frontmatter that stay in step with its card.
@@ -8,7 +8,7 @@ import type { EvraDoc, EvraEvent, SyncKey } from './types';
 
 export type PropValue = string | number | string[] | null;
 
-export function syncValue(k: SyncKey, ev: EvraEvent, doc: EvraDoc, E: Engine): PropValue {
+export function syncValue(k: SyncKey, ev: TimelineEvent, doc: TimelineDoc, E: Engine): PropValue {
 	const p = E.parts(ev.t), path = E.erasAt(ev.t);
 	switch (k) {
 		case 'date': return ev.end != null ? E.fmtRange(ev) : E.fmt(ev.t);
@@ -24,13 +24,13 @@ export function syncValue(k: SyncKey, ev: EvraEvent, doc: EvraDoc, E: Engine): P
 }
 
 /** The fields being synced, as [field, property name]. */
-export function liveFields(doc: EvraDoc): [SyncKey, string][] {
+export function liveFields(doc: TimelineDoc): [SyncKey, string][] {
 	const sy = doc.opts.sync;
 	return SYNC_FIELDS.filter(([k]) => sy.fields[k].on && sy.fields[k].key.trim()).map(([k]): [SyncKey, string] => [k, sy.fields[k].key.trim()]);
 }
 
 /** What a note's properties should be. null removes a property. ev null: the note is no longer linked. */
-export function desiredProps(doc: EvraDoc, E: Engine, ev: EvraEvent | null): Record<string, PropValue> {
+export function desiredProps(doc: TimelineDoc, E: Engine, ev: TimelineEvent | null): Record<string, PropValue> {
 	const sy = doc.opts.sync, live = liveFields(doc), liveKeys = new Set(live.map((x) => x[1])), props: Record<string, PropValue> = {};
 	(sy.written || []).filter((k) => !liveKeys.has(k)).forEach((k) => (props[k] = null));
 	live.forEach(([k, key]) => (props[key] = ev ? syncValue(k, ev, doc, E) : null));
@@ -62,7 +62,7 @@ export function needsWrite(fm: Record<string, unknown> | undefined, props: Recor
 const lower = (fm: Record<string, unknown>) => Object.fromEntries(Object.entries(fm || {}).map(([k, v]) => [k.toLowerCase(), v]));
 
 /** A note's year, month and day properties, as a new date for its card (the span keeps its length), or null. */
-export function dateFromProps(fm: Record<string, unknown>, doc: EvraDoc, E: Engine, ev: EvraEvent): number | null {
+export function dateFromProps(fm: Record<string, unknown>, doc: TimelineDoc, E: Engine, ev: TimelineEvent): number | null {
 	const sy = doc.opts.sync, f = sy.fields, cur = E.parts(ev.t), pr = fm || {}, low = lower(pr);
 	let yr = cur.yr, m = cur.m, d = cur.d;
 	// the exact key first, then any capitalisation of it, as noteDateOf reads them
@@ -79,7 +79,7 @@ export function dateFromProps(fm: Record<string, unknown>, doc: EvraDoc, E: Engi
 }
 
 /** Reads a year (and optionally month and day) from a note's properties, or a date property like "14 Frost 412". */
-export function noteDateOf(fm: Record<string, unknown>, doc: EvraDoc, E: Engine): number | null {
+export function noteDateOf(fm: Record<string, unknown>, doc: TimelineDoc, E: Engine): number | null {
 	if (!fm) return null;
 	const f = doc.opts.sync.fields, low = lower(fm);
 	const pick = (...keys: string[]): unknown => keys.map((k) => k && low[k.toLowerCase()]).find((v) => v != null && v !== '');
@@ -100,7 +100,7 @@ export function noteDateOf(fm: Record<string, unknown>, doc: EvraDoc, E: Engine)
 
 /** Whether a free-form date property is worth reading: an ISO-style date, or numbers mixed only with words
     this calendar uses (month, weekday, unit and era names, words from its formats). Anything else is skipped, not guessed. */
-export function readsAsDate(v: string, doc: EvraDoc, E: Engine): boolean {
+export function readsAsDate(v: string, doc: TimelineDoc, E: Engine): boolean {
 	const q = v.trim().toLowerCase();
 	if (!q || q.length > 80) return false;
 	if (/^-?\d{1,9}[-/]\d{1,2}([-/]\d{1,2})?(?![\d/-])/.test(q)) return true;

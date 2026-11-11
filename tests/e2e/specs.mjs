@@ -3,6 +3,53 @@ export const specs = [];
 const test = (name, fn) => specs.push({ name, fn });
 const A = '.workspace-leaf.mod-active .evra-root';
 
+/* ---------- native OB format ---------- */
+test('new timeline creates a native .ob file with an OB header', async (p, h, t) => {
+ await p.ev(`app.commands.executeCommandById('ouroboros-timelines:new-timeline')`); await p.sleep(700);
+ const path = await p.ev(`app.workspace.activeLeaf.view.file.path`);
+ t.ok(path.endsWith('.ob'), 'new timeline uses native extension: ' + path);
+ const raw = await p.ev(`app.vault.adapter.read(${JSON.stringify(path)})`);
+ t.ok(JSON.parse(raw).format === 'ob', 'saved header is format ob');
+});
+test('opens and saves an existing native .ob file without changing its format', async (p, h, t) => {
+ await p.ev(`app.vault.create('Native.ob', JSON.stringify({format:'ob',version:1,name:'Native',events:[],eras:[]})).then(() => 1)`);
+ await h.open('Native.ob');
+ t.ok(!(await p.ev(`!!document.querySelector('.workspace-leaf.mod-active .evra-error')`)), 'native file opened');
+ const doc = await h.doc(); doc.name = 'Edited Native';
+ await p.ev(`(() => { const v = app.workspace.activeLeaf.view; v.timeline.setDoc(${JSON.stringify(doc)}); v.requestSave(); return v.save().then(() => 1); })()`);
+ const saved = await h.saved('Native.ob');
+ t.eq(saved.format, 'ob', 'native writer retains OB header');
+ t.eq(saved.name, 'Edited Native', 'edited native document saved');
+});
+test('malformed and unsupported native OB files are left untouched', async (p, h, t) => {
+ await p.ev(`app.vault.create('Broken.ob', '{ broken').then(() => app.vault.create('Future.ob', JSON.stringify({format:'ob',version:2,events:[],future:true}))).then(() => 1)`);
+ await h.open('Broken.ob');
+ t.eq(await p.ev(`app.vault.adapter.read('Broken.ob')`), '{ broken', 'malformed OB unchanged');
+ await h.open('Future.ob'); await p.sleep(200);
+ t.ok(/newer version/i.test(await p.ev(`document.querySelector('.workspace-leaf.mod-active .evra-error')?.textContent || ''`)), 'unsupported OB version refused');
+ t.ok((await p.ev(`app.vault.adapter.read('Future.ob')`)).includes('"version":2'), 'unsupported OB unchanged');
+});
+test('native ob embed renders', async (p, h, t) => {
+ const md = '---\ntitle: Native embed\n---\n\n\`\`\`ob\ntimeline: Native\n\`\`\`\n';
+ await p.ev(`app.vault.create('Native.ob', JSON.stringify({format:'ob',version:1,name:'Native',events:[{id:'e1',t:0,side:'a',title:'Native event',text:'',color:null,file:null}],eras:[]})).then(() => app.vault.create('Native embed.md', ${JSON.stringify(md)})).then(() => 1)`);
+ await p.ev(`app.workspace.getLeaf(false).setViewState({type:'markdown',state:{file:'Native embed.md',mode:'preview'}}).then(() => 1)`); await p.sleep(1000);
+ t.ok(await p.ev(`!!document.querySelector('.ob-embed, .ouroboros-embed, .evra-embed')`), 'native embed rendered');
+ t.ok(await p.ev(`document.body.innerText.includes('Native event')`), 'native event shown');
+});
+
+test('legacy compatibility can be disabled while native OB remains available', async (p, h, t) => {
+ await p.ev(`(() => { const pl = app.plugins.plugins['ouroboros-timelines']; pl.settings.evraCompatibility = false; return pl.saveSettings(); })()`);
+ await p.ev(`app.plugins.disablePlugin('ouroboros-timelines').then(() => app.plugins.enablePluginAndSave('ouroboros-timelines'))`); await p.sleep(500);
+ t.eq(await p.ev(`app.plugins.plugins['ouroboros-timelines'].settings.evraCompatibility`), false, 'compatibility preference persisted');
+ await p.ev(`app.vault.create('Legacy-disabled.evra', JSON.stringify({format:'evra',version:1,name:'Legacy',events:[],eras:[]})).then(() => 1)`);
+ await p.ev(`app.workspace.getLeaf(false).openFile(app.vault.getAbstractFileByPath('Legacy-disabled.evra')).then(() => 1)`); await p.sleep(400);
+ t.ok(await p.ev(`app.workspace.activeLeaf.view.getViewType() !== 'ouroboros-timelines'`), 'legacy file is not opened by Ouroboros when compatibility is disabled');
+ await p.ev(`app.commands.executeCommandById('ouroboros-timelines:new-timeline')`); await p.sleep(500);
+ t.ok(await p.ev(`app.workspace.activeLeaf.view.file.path.endsWith('.ob')`), 'native .ob creation still works');
+ await p.ev(`(() => { const pl = app.plugins.plugins['ouroboros-timelines']; pl.settings.evraCompatibility = true; return pl.saveSettings(); })()`);
+ await p.ev(`app.plugins.disablePlugin('ouroboros-timelines').then(() => app.plugins.enablePluginAndSave('ouroboros-timelines'))`); await p.sleep(500);
+});
+
 /* ---------- opening ---------- */
 test('opens the sample timeline with cards, eras, ruler and minimap', async (p, h, t) => {
 	await h.open();
@@ -17,7 +64,7 @@ test('word count ignores timelines', async (p, h, t) => {
 	await p.sleep(400);
 	t.ok(!(await p.ev(`[...document.querySelectorAll('.status-bar-item')].some(e => /words/.test(e.textContent) && e.offsetParent)`)), 'no word count');
 });
-test('an empty .evra file becomes a new timeline', async (p, h, t) => {
+test('an empty legacy .evra file becomes a new timeline', async (p, h, t) => {
 	await p.ev(`app.vault.create('Empty.evra', '').then(() => 1)`);
 	await h.open('Empty.evra');
 	const d = await h.saved('Empty.evra');
@@ -429,7 +476,7 @@ test('defaults: saved settings start new timelines', async (p, h, t) => {
 	await h.open(); await h.openSheet('calendar');
 	await p.ev(`(() => { const s = document.querySelector('${A} [data-k=sPreset]'); s.value = 'moons'; s.dispatchEvent(new Event('change')); })()`); await p.sleep(200);
 	await h.openSheet('timeline'); const d = await h.sheet('[data-k=tDef]'); await p.click(d.x, d.y); await p.sleep(300);
-	await p.ev(`app.commands.executeCommandById('evra:new-timeline')`); await p.sleep(1200);
+	await p.ev(`app.commands.executeCommandById('ouroboros-timelines:new-timeline')`); await p.sleep(1200);
 	t.eq((await h.doc()).cal.months.length, 13, 'new timeline uses the saved calendar');
 });
 
@@ -444,7 +491,7 @@ test('the open-note button opens the note beside the timeline, reusing the pane'
 	await h.open();
 	let l = await h.card('Fall of the River Keep', '.ln'); await p.click(l.x, l.y); await p.sleep(700);
 	t.ok(await p.ev(`app.workspace.getLeavesOfType('markdown').some(l => l.view.file && l.view.file.basename === 'Fall of the River Keep')`), 'opened');
-	await p.ev(`app.workspace.setActiveLeaf(app.workspace.getLeavesOfType('evra')[0], {focus: true})`); await p.sleep(300);
+	await p.ev(`app.workspace.setActiveLeaf(app.workspace.getLeavesOfType('ouroboros-timelines')[0], {focus: true})`); await p.sleep(300);
 	l = await h.card('Treaty of Sallow', '.ln'); await p.click(l.x, l.y); await p.sleep(700);
 	t.eq(await p.ev(`app.workspace.getLeavesOfType('markdown').length`), 1, 'reused the same pane');
 });
@@ -506,25 +553,25 @@ test('the evra code block renders in reading view and opens the timeline', async
 	t.ok(/Reign of Ash/.test(await p.ev(`document.querySelector('.evra-embed .eh').textContent`)), 'era title');
 	t.ok(await p.ev(`document.querySelectorAll('.evra-embed li button').length > 2`), 'events listed');
 	const b = await p.ev(`(() => { const e = [...document.querySelectorAll('.evra-embed li button')].find(x => x.offsetParent); const r = e.getBoundingClientRect(); return {x: r.x + r.width / 2, y: r.y + r.height / 2}; })()`); await p.click(b.x, b.y); await p.sleep(1200);
-	t.ok(await p.ev(`app.workspace.activeLeaf.view.getViewType() === 'evra'`), 'opened the timeline');
+	t.ok(await p.ev(`app.workspace.activeLeaf.view.getViewType() === 'ouroboros-timelines'`), 'opened the timeline');
 });
 
 /* ---------- commands and views ---------- */
 test('every command runs without errors', async (p, h, t) => {
 	await h.open();
-	const ids = await p.ev(`Object.keys(app.commands.commands).filter(id => id.startsWith('evra:') && !['evra:new-timeline', 'evra:open-sample'].includes(id))`);
+	const ids = await p.ev(`Object.keys(app.commands.commands).filter(id => id.startsWith('ouroboros-timelines:') && !['ouroboros-timelines:new-timeline', 'ouroboros-timelines:open-sample'].includes(id))`);
 	t.ok(ids.length >= 30, 'commands registered: ' + ids.length);
 	for (const id of ids) {
-		await p.ev(`app.workspace.setActiveLeaf(app.workspace.getLeavesOfType('evra')[0], {focus: true})`);
+		await p.ev(`app.workspace.setActiveLeaf(app.workspace.getLeavesOfType('ouroboros-timelines')[0], {focus: true})`);
 		t.ok(await p.ev(`app.commands.executeCommandById(${JSON.stringify(id)})`), id + ' available');
 		await p.sleep(120); await p.key('Escape'); await p.key('Escape');
 	}
 });
 test('new timeline and sample commands create files', async (p, h, t) => {
-	await p.ev(`app.commands.executeCommandById('evra:new-timeline')`); await p.sleep(1200);
+	await p.ev(`app.commands.executeCommandById('ouroboros-timelines:new-timeline')`); await p.sleep(1200);
 	t.ok(await p.ev(`app.vault.getFiles().some(f => f.basename.startsWith('Untitled timeline'))`), 'new timeline');
-	await p.ev(`app.commands.executeCommandById('evra:open-sample')`); await p.sleep(2500);
-	t.ok(await p.ev(`!!app.vault.getAbstractFileByPath('Ouroboros sample/Chronicle of Veld.evra')`), 'sample');
+	await p.ev(`app.commands.executeCommandById('ouroboros-timelines:open-sample')`); await p.sleep(2500);
+	t.ok(await p.ev(`!!app.vault.getAbstractFileByPath('Ouroboros sample/Chronicle of Veld.ob')`), 'sample');
 	t.ok(await p.ev(`!!app.vault.getAbstractFileByPath('Ouroboros sample/The Heron.svg')`), 'sample cover');
 });
 test('four directions render and keep the stretch of time', async (p, h, t) => {
@@ -542,7 +589,7 @@ test('two panes on one timeline stay in step', async (p, h, t) => {
 	await p.ev(`app.workspace.getLeaf('split').openFile(app.vault.getAbstractFileByPath('Chronicle of Veld.evra')).then(() => 1)`); await p.sleep(1000);
 	await p.ev(`(() => { const t = app.workspace.activeLeaf.view.timeline; const d = t.getDoc(); d.events[0].title = 'Changed here'; t.setDoc(JSON.parse(JSON.stringify(d))); app.workspace.activeLeaf.view.requestSave(); return 1; })()`);
 	await p.ev(`app.workspace.activeLeaf.view.save().then(() => 1)`); await p.sleep(1200);
-	const other = await p.ev(`app.workspace.getLeavesOfType('evra').map(l => l.view.timeline.getDoc().events[0].title)`);
+	const other = await p.ev(`app.workspace.getLeavesOfType('ouroboros-timelines').map(l => l.view.timeline.getDoc().events[0].title)`);
 	t.ok(other.length === 2 && other.every((x) => x === 'Changed here'), 'both panes show the change: ' + other.join(' / '));
 });
 test('opening and closing timelines many times leaves nothing behind', async (p, h, t) => {
@@ -592,15 +639,15 @@ test('Ctrl/Cmd D leaves the copy buffer alone', async (p, h, t) => {
 });
 test('plugin settings tab: drawn from definitions (Obsidian 1.13+), controls save', async (p, h, t) => {
 	await p.ev(`(() => { app.setting.open(); return 1; })()`); await p.sleep(1000);
-	await p.ev(`(() => { app.setting.openTabById('evra'); return 1; })()`); await p.sleep(600);
+	await p.ev(`(() => { app.setting.openTabById('ouroboros-timelines'); return 1; })()`); await p.sleep(600);
 	const C = `app.setting.activeTab.containerEl`;
 	try {
 		const txt = await p.ev(`${C}.innerText`);
 		t.ok(['Folder for new timelines', 'Folder for notes made from cards', 'Open linked notes', 'Starting settings', 'Sample timeline'].every((x) => txt.includes(x)), 'every setting shown');
 		await p.ev(`(() => { const s = ${C}.querySelector('select'); s.value = 'same'; s.dispatchEvent(new Event('change', {bubbles: true})); return 1; })()`); await p.sleep(300);
-		t.eq(await p.ev(`app.plugins.plugins.evra.settings.openNotesIn`), 'same', 'dropdown saves');
+		t.eq(await p.ev(`app.plugins.plugins['ouroboros-timelines'].settings.openNotesIn`), 'same', 'dropdown saves');
 		await p.ev(`(() => { const i = ${C}.querySelector('input'); i.value = '  Worlds  '; i.dispatchEvent(new Event('input', {bubbles: true})); i.dispatchEvent(new Event('change', {bubbles: true})); return 1; })()`); await p.sleep(700);
-		t.eq(await p.ev(`app.plugins.plugins.evra.settings.newFileFolder`), 'Worlds', 'folder saved, trimmed');
+		t.eq(await p.ev(`app.plugins.plugins['ouroboros-timelines'].settings.newFileFolder`), 'Worlds', 'folder saved, trimmed');
 	} finally { await p.ev(`(() => { app.setting.close(); return 1; })()`); }
 });
 test('a timeline from a newer Ouroboros is refused and never rewritten (open, save, note rename, embed)', async (p, h, t) => {
@@ -609,7 +656,7 @@ test('a timeline from a newer Ouroboros is refused and never rewritten (open, sa
 	const disk = () => p.ev(`app.vault.adapter.read('Future.evra')`);
 	await p.ev(`app.workspace.getLeaf(false).openFile(app.vault.getAbstractFileByPath('Future.evra')).then(() => 1)`); await p.sleep(800);
 	const msg = await p.ev(`document.querySelector('.workspace-leaf.mod-active .evra-error')?.innerText || ''`);
-	t.ok(/newer version of Ouroboros \(file format 2\)/.test(msg) && /left untouched/.test(msg), 'says why: ' + msg);
+	t.ok(/newer version of Evra \(file format 2\)/.test(msg) && /left untouched/.test(msg), 'legacy file says why: ' + msg);
 	t.ok(!(await p.ev(`!!document.querySelector('.workspace-leaf.mod-active .evra-root')`)), 'no timeline drawn');
 	await p.ev(`app.workspace.activeLeaf.view.save().then(() => 1)`); await p.sleep(300);
 	await p.ev(`(() => { app.workspace.iterateRootLeaves(l => l.detach()); return 1; })()`); await p.sleep(500);
@@ -621,6 +668,6 @@ test('a timeline from a newer Ouroboros is refused and never rewritten (open, sa
 	await p.ev(`app.vault.create('FutureEmbed.md', ${JSON.stringify('```evra\ntimeline: Future\n```\n')}).then(() => 1)`);
 	await p.ev(`app.workspace.getLeaf(false).setViewState({type: 'markdown', state: {file: 'FutureEmbed.md', mode: 'preview'}}).then(() => 1)`); await p.sleep(1200);
 	const em = await p.ev(`document.querySelector('.workspace-leaf.mod-active .evra-embed')?.innerText || ''`);
-	t.ok(/couldn’t be read\. It was saved by a newer version of Ouroboros/.test(em), 'the embed says why: ' + em);
+	t.ok(/couldn’t be read\. It was saved by a newer version of Evra/.test(em), 'legacy embed says why: ' + em);
 	t.eq(await disk(), future, 'still byte for byte the same');
 });

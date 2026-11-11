@@ -22,14 +22,14 @@ npm run big-world      # generate Aerth, a large example world (~2,700 notes, 91
 
 | File | What it holds |
 |---|---|
-| `src/main.ts` | The plugin: registers the view and the `.evra` extension, commands, the ribbon button, the `evra` code block, and events for renamed or changed notes |
-| `src/view.ts` | `EvraView`, a `TextFileView` for `.evra` files: loading, saving, undo buttons, workspace state, and the notes adapter the timeline uses |
+| `src/main.ts` | The plugin: registers the view and the `.ob` extension, commands, the ribbon button, the `ob` code block, and events for renamed or changed notes |
+| `src/view.ts` | `OuroborosView`, a `TextFileView` for native `.ob` and compatible legacy `.evra` files: loading, saving, undo buttons, workspace state, and the notes adapter the timeline uses |
 | `src/timeline.ts` | The timeline itself: layout, drawing, pointer and keyboard handling, cards, eras, popovers, the settings panel, search, minimap, filters and export |
 | `src/engine.ts` | The calendar engine: dates as day counts, months, leap rules, weekdays, era years, templates, ruler marks and snapping |
 | `src/model.ts` | The document model: defaults, upgrading older files, presets, calendar import and the sample world |
 | `src/sync.ts` | Note sync: which properties to write, and reading dates back from notes |
 | `src/text.ts` | Note excerpts and inline formatting on cards |
-| `src/embed.ts` | The `evra` code block |
+| `src/embed.ts` | The `ob` code block |
 | `src/notes.ts` | Note text and cover images, cached for cards |
 | `src/settings.ts` | The plugin settings tab |
 | `src/commands.ts` | The timeline commands, shared by Obsidian's command palette and the timeline's own search |
@@ -52,7 +52,7 @@ All HTML is built from escaped strings and parsed through Obsidian's `sanitizeHT
 
 Colors and fonts come from Obsidian's theme variables. They are mapped to `--evra-*` variables at the top of `styles.css`. Themes and CSS snippets can override those variables on `.evra-view`.
 
-Inside the view, form controls are reset to the browser's own look and then styled by Evra, so they look the same in every theme.
+Inside the view, form controls are reset to the browser's own look and then styled by Ouroboros, so they look the same in every theme.
 
 ## End-to-end tests
 
@@ -88,20 +88,13 @@ To extract `app.css` and `enhance.js`, run `npx asar extract /usr/lib/obsidian/o
 3. Push the commit and its tag: `git push && git push --tags`.
 4. The **Release** GitHub Action checks and builds the plugin, then publishes a release with `main.js`, `manifest.json` and `styles.css` attached, using that version's section of `CHANGELOG.md` as its notes. (A `0.x` tag, from before 1.0, makes a draft pre-release instead.)
 
-Each release's three files carry a signed record of the build that made them: `gh attestation verify main.js --repo fyresmith/evra` checks one.
+Each release's three files carry a signed record of the build that made them: `gh attestation verify main.js --repo CatapultTV/Ouroboros-Timeline` checks one.
 
 The release tag must match the version in `manifest.json` exactly, with no `v` prefix. `npm version` is set up to create tags that way (see `.npmrc`).
 
-### The community plugin directory
+### The Community Plugin Directory
 
-Ouroboros Timelines remains listed in Obsidian's directory under the existing `evra` plugin ID for compatibility. The directory picks up each new release by itself. Obsidian's docs describe the full process: <https://docs.obsidian.md/Plugins/Releasing/Submit+your+plugin>. In short:
-
-1. Make sure the repository is public, with `README.md`, `LICENSE` and `manifest.json` at its root. The directory reads `manifest.json` from the default branch, so push it first.
-2. Publish a GitHub release as described above. Its tag must equal the manifest version, and it must have `main.js`, `manifest.json` and `styles.css` attached.
-3. Sign in at <https://community.obsidian.md> with an Obsidian account, link the GitHub account that owns the repository, and add the plugin to the directory.
-4. An automated review runs the same kinds of checks as `npm run lint`. To address its feedback, fix the issue and publish a new release with a higher version.
-
-The plugin's id (`evra`) must stay unique and can't contain "obsidian". It is intentionally preserved during this rebrand so existing settings and installations are not orphaned; design a migration before changing it in a future release.
+Ouroboros Timelines is not listed in the Community Plugin Directory. Install it manually from GitHub releases; automatic updates are unavailable. If a directory listing is pursued later, follow Obsidian's [submission instructions](https://docs.obsidian.md/Plugins/Releasing/Submit+your+plugin). The plugin ID is `ouroboros-timelines`; legacy Evra settings are migrated from the old data store when available.
 
 ## The banner
 

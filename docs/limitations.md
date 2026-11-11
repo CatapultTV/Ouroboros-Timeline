@@ -1,7 +1,7 @@
 # Known limitations
 
 What isn't built yet, and what works in a way you might not expect. Anything else that goes wrong is a bug:
-[open an issue](https://github.com/fyresmith/evra/issues).
+[open an issue](https://github.com/CatapultTV/Ouroboros-Timeline/issues).
 
 ## Planned, not built
 
@@ -10,15 +10,15 @@ What isn't built yet, and what works in a way you might not expect. Anything els
 
 ## Sync
 
-- **Obsidian Sync** carries `.evra` files only with **Sync all other types** on, in Obsidian's Sync settings, on each
+- **Obsidian Sync** carries `.ob` files only with **Sync all other types** on, in Obsidian's Sync settings, on each
   device.
 - Tools that copy every file (iCloud, Syncthing, Dropbox, git) carry timelines without any setting.
-- If a timeline changes on disk while you have unsaved edits to it, Evra keeps both sets of changes and says so.
+- If a timeline changes on disk while you have unsaved edits to it, Ouroboros keeps both sets of changes and says so.
 
 ## Timelines
 
-- A timeline saved by a newer version of Evra, with a file format this version doesn't know, isn't opened. Evra says
-  why and leaves the file untouched. Update Evra to open it.
+- A timeline saved by a newer version of Ouroboros Timelines, with a file format this version doesn't know, isn't opened. Ouroboros says
+  why and leaves the file untouched. Update Ouroboros Timelines to open it.
 - A file that isn't valid JSON isn't opened either, and is never overwritten.
 - A card's own description holds up to 256 characters. A linked card shows the start of its note, trailing off after
   256 characters.
@@ -36,7 +36,7 @@ What isn't built yet, and what works in a way you might not expect. Anything els
 
 ## Embeds
 
-- An `evra` code block lists the first ten events of what it shows.
+- An `ob` code block lists the first ten events of what it shows.
 - Without a `timeline` option, an embed uses a timeline in the same folder as the note, or else the first one in the
   vault.
 

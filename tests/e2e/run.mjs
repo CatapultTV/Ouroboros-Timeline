@@ -19,7 +19,7 @@ mkdirSync(shots, { recursive: true });
 
 // the pristine test vault, so each test starts from the same files
 const pristine = new Map();
-const walk = (dir) => { for (const f of readdirSync(dir)) { const p = join(dir, f); if (f === '.obsidian' || f === 'Aerth') continue; if (statSync(p).isDirectory()) walk(p); else if (/\.(md|evra)$/.test(f)) pristine.set(relative('test-vault', p), readFileSync(p, 'utf8')); } };
+const walk = (dir) => { for (const f of readdirSync(dir)) { const p = join(dir, f); if (f === '.obsidian' || f === 'Aerth') continue; if (statSync(p).isDirectory()) walk(p); else if (/\.(md|evra|ob)$/.test(f)) pristine.set(relative('test-vault', p), readFileSync(p, 'utf8')); } };
 walk('test-vault');
 
 // specs: every tests/e2e/specs*.mjs, or just the ones given with --specs a.mjs,b.mjs
@@ -63,7 +63,7 @@ console.log(`\n${results.length - failed.length} passed, ${failed.length} failed
 process.exit(failed.length ? 1 : 0);
 
 function helpers(p) {
-	const view = `app.workspace.getLeavesOfType('evra').map(l => l.view).find(v => v.timeline && v.leaf === app.workspace.activeLeaf) || app.workspace.getLeavesOfType('evra').map(l => l.view)[0]`;
+	const view = `app.workspace.getLeavesOfType('ouroboros-timelines').map(l => l.view).find(v => v.timeline && v.leaf === app.workspace.activeLeaf) || app.workspace.getLeavesOfType('ouroboros-timelines').map(l => l.view)[0]`;
 	const h = {
 		view, tl: `(${view}).timeline`,
 		async reset() {
@@ -77,8 +77,8 @@ function helpers(p) {
 					if (f) await app.vault.modify(f, text); else { const dir = path.split('/').slice(0, -1).join('/'); if (dir && !app.vault.getAbstractFileByPath(dir)) await app.vault.createFolder(dir); await app.vault.create(path, text); }
 				}
 				const keep = new Set(files.map(f => f[0]));
-				for (const f of app.vault.getFiles()) if (!keep.has(f.path) && !f.path.startsWith('Aerth/') && /\\.(md|evra)$/.test(f.path)) await app.vault.delete(f);
-				const p = app.plugins.plugins.evra; p.settings = Object.assign({}, p.settings, { defaults: null, newFileFolder: '', noteFolder: '', openNotesIn: 'split' }); await p.saveSettings();
+				for (const f of app.vault.getFiles()) if (!keep.has(f.path) && !f.path.startsWith('Aerth/') && /\\.(md|evra|ob)$/.test(f.path)) await app.vault.delete(f);
+				const p = app.plugins.plugins['ouroboros-timelines']; p.settings = Object.assign({}, p.settings, { defaults: null, newFileFolder: '', noteFolder: '', openNotesIn: 'split', evraCompatibility: true }); await p.saveSettings();
 				app.workspace.leftSplit.collapse();
 			})().then(() => 1)`);
 			await p.sleep(250);
@@ -91,7 +91,7 @@ function helpers(p) {
 		doc: () => p.ev(`JSON.parse(JSON.stringify(${h.tl}.getDoc()))`),
 		events: async () => (await h.doc()).events,
 		ev: async (title) => (await h.doc()).events.find((e) => e.title === title || (e.file && e.file.split('/').pop() === title)),
-		run: (id) => p.ev(`app.commands.executeCommandById('evra:${id}')`),
+		run: (id) => p.ev(`app.commands.executeCommandById('ouroboros-timelines:${id}')`),
 		/** The file on disk, after any pending save. */
 		async saved(path = 'Chronicle of Veld.evra') { await p.ev(`(${view}).save().then(() => 1)`); return JSON.parse(await p.ev(`app.vault.adapter.read(${JSON.stringify(path)})`)); },
 		setView: (v0Years, years) => p.ev(`(() => { const t = ${h.tl}; const d = t.getDoc(); const Y = d.cal.months.reduce((a, m) => a + m.days, 0); const s = document.querySelector('.workspace-leaf.mod-active .evra-root .stage'); const L = ['ltr','rtl'].includes(d.orientation) ? s.clientWidth : s.clientHeight; t.setViewState({v0: ${v0Years} * Y, scale: L / (${years} * Y), x: 0}); return 1; })()`).then(() => p.sleep(350)),

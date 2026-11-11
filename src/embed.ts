@@ -1,16 +1,16 @@
 import { FileView, MarkdownRenderChild, TFile, type MarkdownPostProcessorContext } from 'obsidian';
 import { svgEl } from './dom';
 import { makeEngine } from './engine';
-import type EvraPlugin from './main';
+import type OuroborosPlugin from './main';
 import { UnsupportedFile } from './model';
 import { formatForExtension, parseTimeline } from './format';
 import { VIEW_TYPE } from './view';
-import type { EvraDoc } from './types';
+import type { TimelineDoc } from './types';
 
-function isTimelinePath(plugin: EvraPlugin, path: string): boolean {
+function isTimelinePath(plugin: OuroborosPlugin, path: string): boolean {
 	return path.endsWith('.ob') || (plugin.settings.evraCompatibility && path.endsWith('.evra'));
 }
-function allowedTimeline(plugin: EvraPlugin, file: { path: string }): boolean { return isTimelinePath(plugin, file.path); }
+function allowedTimeline(plugin: OuroborosPlugin, file: { path: string }): boolean { return isTimelinePath(plugin, file.path); }
 
 /* A timeline inside a note:
    ```evra
@@ -25,7 +25,7 @@ export function parseEmbed(src: string): Record<string, string> {
 	return o;
 }
 
-function findTimeline(plugin: EvraPlugin, name: string | undefined, sourcePath: string): TFile | null {
+function findTimeline(plugin: OuroborosPlugin, name: string | undefined, sourcePath: string): TFile | null {
 	const mc = plugin.app.metadataCache;
 	const allowed = (f: TFile) => f.extension === 'ob' || (plugin.settings.evraCompatibility && f.extension === 'evra');
 	if (name) {
@@ -53,7 +53,7 @@ function findTimeline(plugin: EvraPlugin, name: string | undefined, sourcePath: 
 class EmbedChild extends MarkdownRenderChild {
 	private gen = 0; // bumped by each render; an older render still waiting on a read gives up
 	private filePath: string | null = null; // the timeline this embed shows, resolved on each render
-	constructor(el: HTMLElement, private plugin: EvraPlugin, private src: string, private sourcePath: string) { super(el); }
+	constructor(el: HTMLElement, private plugin: OuroborosPlugin, private src: string, private sourcePath: string) { super(el); }
 	onload() {
 		void this.render();
 		// only saves to the timeline shown here (or any timeline while none is found) redraw it
@@ -78,7 +78,7 @@ class EmbedChild extends MarkdownRenderChild {
 		const gen = ++this.gen, el = this.containerEl, o = parseEmbed(this.src);
 		const file = findTimeline(this.plugin, o.timeline, this.sourcePath);
 		this.filePath = file ? file.path : null;
-		let doc: EvraDoc = null, failed: string | null = null;
+		let doc: TimelineDoc = null, failed: string | null = null;
 		if (file) {
 			try { doc = parseTimeline(await this.plugin.app.vault.cachedRead(file), file.basename, formatForExtension(file.extension) || 'ob'); }
 			catch (e) { failed = e instanceof UnsupportedFile ? e.message : ''; }
@@ -92,7 +92,7 @@ class EmbedChild extends MarkdownRenderChild {
 	}
 }
 
-export function drawEmbed(el: HTMLElement, doc: EvraDoc, o: Record<string, string>, open: (id: string) => void, noteTitle: (link: string) => string) {
+export function drawEmbed(el: HTMLElement, doc: TimelineDoc, o: Record<string, string>, open: (id: string) => void, noteTitle: (link: string) => string) {
 	const E = makeEngine(() => doc), dep = E.eraDepths();
 	const col = (c: string | null) => { const p = c && doc.palette.find((x) => x.id === c); return p ? p.hex || `var(--evra-c${p.id})` : 'var(--evra-muted)'; };
 	let a = E.yearStartT(doc.range[0]), b = E.yearStartT(doc.range[1]), title = doc.name;
@@ -136,6 +136,6 @@ export function drawEmbed(el: HTMLElement, doc: EvraDoc, o: Record<string, strin
 	if (!evs.length && tag) ol.createEl('li', { cls: 'more', text: `No events tagged #${tag}.` });
 }
 
-export function renderEmbed(plugin: EvraPlugin, src: string, el: HTMLElement, ctx: MarkdownPostProcessorContext) {
+export function renderEmbed(plugin: OuroborosPlugin, src: string, el: HTMLElement, ctx: MarkdownPostProcessorContext) {
 	ctx.addChild(new EmbedChild(el, plugin, src, ctx.sourcePath));
 }

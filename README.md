@@ -1,8 +1,8 @@
 <h1 align="center">Ouroboros Timelines for Obsidian</h1>
 
-> Ouroboros Timelines is an independent plugin with native `.ob` timeline files and `ob` Markdown embeds. Legacy Evra `.evra` files remain supported through optional compatibility mode; they are never converted automatically. Use **Create native OB copy of current Evra timeline** when you want a separate `.ob` copy.
+> Ouroboros Timelines is an independent plugin with native `.ob` timeline files and `ob` Markdown embeds. Legacy Evra `.evra` files remain supported through optional compatibility mode; they are never converted automatically. Use **Create native file copy from current legacy timeline** when you want a separate `.ob` copy.
 
-<p align="center"><img src="docs/media/banner.png" alt="Evra Timelines for Obsidian: timelines for worldbuilders. A timeline of an invented world, with cards on both sides of a line of time, a war drawn as a thread beside it, and eras named along the edge."></p>
+<p align="center"><img src="docs/media/banner.png" alt="Ouroboros Timelines for Obsidian: timelines for worldbuilders. A timeline of an invented world, with cards on both sides of a line of time, a war drawn as a thread beside it, and eras named along the edge."></p>
 
 <p align="center">Your own calendar · eras nested as deep as you like · stories as threads · cards linked to your notes</p>
 
@@ -27,8 +27,7 @@ Each native timeline is its own `.ob` file in your vault, and its cards can link
 
 Ouroboros Timelines needs Obsidian 1.6 or later, on a computer, a phone or a tablet.
 
-Copy the packaged plugin into `.obsidian/plugins/ouroboros-timelines/` in your vault, then open
-**Settings → Community plugins → Browse**, search for **Ouroboros Timelines**, then choose **Install** and **Enable**.
+For manual installation, download `main.js`, `manifest.json`, and `styles.css` from an Ouroboros GitHub release and copy them into `.obsidian/plugins/ouroboros-timelines/`. Enable it under **Settings > Community plugins**. Ouroboros Timelines is not currently listed in the Community Plugin Directory.
 
 More in [Installation](docs/installation.md).
 
@@ -304,11 +303,11 @@ The full list is in [Known limitations](docs/limitations.md).
 | [Getting started](docs/getting-started.md) | From an empty timeline to a small history |
 | [User guide](docs/user-guide.md) | Cards, spans, eras, selecting, searching, filters, export |
 | [Calendars](docs/calendars.md) · [Date formats](docs/formats.md) | Months, leap years, festival days, era years, and every label template |
-| [Linked notes and note sync](docs/notes.md) · [Timelines in notes](docs/embeds.md) | Cards that follow your notes, and the `evra` code block |
+| [Linked notes and note sync](docs/notes.md) · [Timelines in notes](docs/embeds.md) | Cards that follow your notes, and the `ob` code block |
 | [Keyboard, mouse and commands](docs/shortcuts.md) · [Settings](docs/settings.md) | Reference |
 | [Troubleshooting](docs/troubleshooting.md) · [Known limitations](docs/limitations.md) | When something isn't as you expect |
 | [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) | What's planned, and what changed |
-| [Development](docs/dev/development.md) · [File format](docs/dev/file-format.md) | For contributors, and for anyone reading a `.evra` file |
+| [Development](docs/dev/development.md) · [File format](docs/dev/file-format.md) | For contributors, and for anyone reading a native `.ob` file |
 | [Issues](https://github.com/CatapultTV/Ouroboros-Timeline/issues) | Report a problem or ask for something |
 
 ## Contributing

@@ -1,7 +1,7 @@
 # Getting started
 
 A walkthrough from an empty timeline to a small history. It takes about ten minutes. If you'd rather look around a
-finished one first, run **Evra Timelines: Open the sample timeline** from the command palette: it opens *The
+finished one first, run **Ouroboros Timelines: Open the sample timeline** from the command palette: it opens *The
 Chronicle of Veld*, a small world with eras, spans, lifespans and linked notes.
 
 In this manual, **Settings → …** means the timeline's own settings panel: the sliders button at the bottom right of a
@@ -9,10 +9,10 @@ timeline.
 
 ## 1. Make a timeline
 
-Click the Evra button in the ribbon, or run **Evra Timelines: New timeline** from the command palette. You can also
+Click the Ouroboros button in the ribbon, or run **Ouroboros Timelines: New timeline** from the command palette. You can also
 right-click a folder and choose **New timeline**.
 
-A timeline is a file in your vault ending in `.evra`. It opens as a line of time running top to bottom, with a year
+A timeline is a file in your vault ending in `.ob`. It opens as a line of time running top to bottom, with a year
 ruler along the edge.
 
 ## 2. Add some events

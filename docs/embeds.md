@@ -15,7 +15,7 @@ Put each option on its own line, as `name: value`. Every option is optional.
 
 | Option | Meaning |
 |---|---|
-| `timeline` | Which timeline to show: its file name, with or without `.ob` (or `.evra` in compatibility mode), or a link like `[[Chronicle of Veld.ob]]`. Without it, Ouroboros uses a timeline in the same folder as the note, or else the first one in the vault. |
+| `timeline` | Which timeline to show: its file name, with or without `.ob` (or `.evra` in compatibility mode), or a link like `[[Chronicle of Veld.ob]]`. Without it, Ouroboros uses a timeline in the same folder as the note, or else the first native timeline in the vault. |
 | `era` | Show just this era, by name. |
 | `from`, `to` | Show from one year to another, as numbered in the timeline's calendar. For example, `from: 30` and `to: 50`. |
 | `tag` | Show only cards with this tag. For example, `tag: war`. |

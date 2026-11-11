@@ -2,7 +2,7 @@
 
 This guide covers everything you can do inside a timeline. For calendars and date formats, see [Calendars](calendars.md) and [Date formats](formats.md).
 
-In these docs, **Settings → …** means the timeline's own settings panel: the sliders button at the bottom right of a timeline. Each timeline has its own calendar, formats and colors. Obsidian's **Settings → Evra Timelines** holds only a few plugin-wide options, such as where new timelines are saved: see [Settings](settings.md).
+In these docs, **Settings → …** means the timeline's own settings panel: the sliders button at the bottom right of a timeline. Each timeline has its own calendar, formats and colors. Obsidian's **Settings → Ouroboros Timelines** holds only a few plugin-wide options, such as where new timelines are saved: see [Settings](settings.md).
 
 ## The layout
 
@@ -113,7 +113,7 @@ With several cards selected, dragging one card moves them all. Their shared opti
 
 Press **Ctrl/⌘ K** or **/** to search cards, eras and notes. Type a date, such as `412`, `Frost 412` or `14 Frost, Year 412`, to jump straight to it. Type **>** first to run a command instead.
 
-Every timeline command is also in Obsidian's command palette, under **Evra Timelines**. None of them have default hotkeys, so you can assign your own in **Settings → Hotkeys**.
+Every timeline command is also in Obsidian's command palette, under **Ouroboros Timelines**. None of them have default hotkeys, so you can assign your own in **Settings → Hotkeys**.
 
 ## Filters
 
@@ -147,7 +147,7 @@ In **Settings → Timeline → Export**, or from the command palette, you can:
 - **Copy as a Markdown table**: date, event, side and tags.
 - **Copy as an outline by era**: headings for each era, with events listed beneath.
 - **Copy the timeline file**: the raw JSON.
-- **Copy an embed for this view**: an [`evra` code block](embeds.md) for the stretch of time on screen.
+- **Copy an embed for this view**: an [`ob` code block](embeds.md) for the stretch of time on screen.
 - **Save the table** or **Save the outline** as a new note next to the timeline.
 
 ## Undo

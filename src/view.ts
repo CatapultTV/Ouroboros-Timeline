@@ -5,16 +5,16 @@ import { emptyDoc, mergeDocs, normDoc, UnsupportedFile } from './model';
 import { formatForExtension, parseTimeline, writeTimeline, type TimelineFormat } from './format';
 import { applyProps, desiredProps, liveFields, needsWrite } from './sync';
 import { mountTimeline, type Timeline, type ViewState } from './timeline';
-import type EvraPlugin from './main';
+import type OuroborosPlugin from './main';
 import { NotePicker } from './picker';
-import type { EvraDoc, EvraEvent, TimelineDefaults } from './types';
+import type { TimelineDoc, TimelineEvent, TimelineDefaults } from './types';
 
 export const VIEW_TYPE = 'ouroboros-timelines';
 
-interface EvraViewState extends Record<string, unknown> { evraView?: ViewState }
+interface OuroborosViewState extends Record<string, unknown> { evraView?: ViewState }
 
-/** A .evra file, shown as a timeline. The file holds the document as JSON; the zoom and scroll live in the workspace. */
-export class EvraView extends TextFileView {
+/** A native .ob or compatible legacy .evra file, shown as a timeline. The file holds JSON; zoom and scroll live in the workspace. */
+export class OuroborosView extends TextFileView {
 	timeline: Timeline = null;
 	private broken: string | null = null; // the file's text when it couldn't be read, so it is never overwritten
 	private pendingView: ViewState | null = null;
@@ -25,7 +25,7 @@ export class EvraView extends TextFileView {
 	private base: string | null = null;
 	private stranded: { base: string; ours: string } | null = null; // unsaved changes while the file on disk can't be read // the file as last loaded or saved, to tell unsaved changes from outside ones
 
-	constructor(leaf: WorkspaceLeaf, private plugin: EvraPlugin) {
+	constructor(leaf: WorkspaceLeaf, private plugin: OuroborosPlugin) {
 		super(leaf);
 		// Not plain text: Obsidian then leaves the file out of its word count and never tries to merge outside edits line by line (like Canvas)
 		(this as unknown as { isPlaintext: boolean }).isPlaintext = false;
@@ -54,7 +54,7 @@ export class EvraView extends TextFileView {
 		// links resolve relative to the timeline file, so a different file starts with an empty cache
 		if (clear || this.resolvedFor !== (this.file ? this.file.path : null)) this.forget();
 		this.resolvedFor = this.file ? this.file.path : null;
-		let doc: EvraDoc;
+		let doc: TimelineDoc;
 		const format = this.fileFormat();
 		const name = this.file ? this.file.basename : 'Untitled';
 		if (!data.trim()) {
@@ -97,9 +97,9 @@ export class EvraView extends TextFileView {
 		// merge the two, card by card
 		this.timeline.flush();
 		const ours = this.timeline.getDoc();
-		let baseDoc: EvraDoc = null;
+		let baseDoc: TimelineDoc = null;
 		try { baseDoc = base != null ? parseTimeline(base, name, format) : null; } catch { /* base unreadable: take the outside version */ }
-		const canon = (d: EvraDoc) => writeTimeline(d, format); // as saved, so key order matches
+		const canon = (d: TimelineDoc) => writeTimeline(d, format); // as saved, so key order matches
 		if (baseDoc && canon(baseDoc) !== canon(ours) && canon(ours) !== canon(doc)) {
 			doc = normDoc(mergeDocs(baseDoc, JSON.parse(JSON.stringify(ours)), doc), name, format);
 			this.requestSave();
@@ -130,7 +130,7 @@ export class EvraView extends TextFileView {
 		this.linksChanged();
 	}
 
-	private mount(doc: EvraDoc) {
+	private mount(doc: TimelineDoc) {
 		this.timeline?.destroy();
 		this.contentEl.empty();
 		this.contentEl.removeClass('evra-error');
@@ -157,15 +157,15 @@ export class EvraView extends TextFileView {
 
 	/** Other panes showing the same file get each change at once, so neither drops the other's unsaved edits when the
 	    file is saved. Their own undo history is cleared, as it would be by an outside change. */
-	private siblings(): EvraView[] {
+	private siblings(): OuroborosView[] {
 		return this.file && this.timeline ? this.app.workspace.getLeavesOfType(VIEW_TYPE).map((l) => l.view)
-			.filter((v): v is EvraView => v instanceof EvraView && v !== this && v.file === this.file && !!v.timeline) : [];
+			.filter((v): v is OuroborosView => v instanceof OuroborosView && v !== this && v.file === this.file && !!v.timeline) : [];
 	}
 	private shareDoc() {
 		const others = this.siblings();
 		if (!others.length) return;
 		const json = JSON.stringify(this.timeline.getDoc());
-		for (const v of others) { v.timeline.setDoc(JSON.parse(json) as EvraDoc); v.updateUndo(); }
+		for (const v of others) { v.timeline.setDoc(JSON.parse(json) as TimelineDoc); v.updateUndo(); }
 	}
 
 	private updateUndo() {
@@ -206,7 +206,7 @@ export class EvraView extends TextFileView {
 	}
 
 	async setState(state: unknown, result: ViewStateResult): Promise<void> {
-		const v = (state as EvraViewState)?.evraView;
+		const v = (state as OuroborosViewState)?.evraView;
 		if (v) { if (this.timeline) this.timeline.setViewState(v); else this.pendingView = v; }
 		await super.setState(state, result);
 	}
@@ -234,9 +234,9 @@ export class EvraView extends TextFileView {
 	private forget() { this.resolved.clear(); this.firstCard = null; }
 	// The first card linked to each note, so a burst of note changes (thousands, as a vault syncs) doesn't search every card
 	// for each. Rebuilt after any edit (links may have changed) or when links resolve anew.
-	private firstCard: Map<TFile, EvraEvent> | null = null;
-	private firstCardFor: EvraEvent[] | null = null;
-	private cardFor(file: TFile): EvraEvent | undefined {
+	private firstCard: Map<TFile, TimelineEvent> | null = null;
+	private firstCardFor: TimelineEvent[] | null = null;
+	private cardFor(file: TFile): TimelineEvent | undefined {
 		if (!this.timeline) return undefined;
 		const evs = this.timeline.getDoc().events;
 		if (!this.firstCard || this.firstCardFor !== evs) {
@@ -264,7 +264,7 @@ export class EvraView extends TextFileView {
 		const app = this.app, mine = this.file ? this.file.path : '';
 		void Promise.all(app.vault.getFiles().filter((f) => (f.extension === 'ob' || (this.plugin.settings.evraCompatibility && f.extension === 'evra')) && f.path !== mine).map(async (f) => {
 			try {
-				const d = JSON.parse(await app.vault.cachedRead(f)) as Partial<EvraDoc>, out: string[] = [];
+				const d = JSON.parse(await app.vault.cachedRead(f)) as Partial<TimelineDoc>, out: string[] = [];
 				for (const e of Array.isArray(d.events) ? d.events : []) {
 					const n = e && typeof e.file === 'string' ? app.metadataCache.getFirstLinkpathDest(e.file.split(/[#|]/)[0], f.path) : null;
 					if (n) out.push(n.path);
@@ -355,9 +355,9 @@ export class EvraView extends TextFileView {
 	private wanted = new Map<string, string>(); // the properties this timeline last wanted each note to have
 
 	/** What each note's properties should be now, for the notes this timeline links to or has written to. */
-	private desiredWrites(doc: EvraDoc): { writes: [TFile, ReturnType<typeof desiredProps>][]; linked: string[] } {
+	private desiredWrites(doc: TimelineDoc): { writes: [TFile, ReturnType<typeof desiredProps>][]; linked: string[] } {
 		const E = makeEngine(() => doc);
-		const byNote = new Map<string, { file: TFile; ev: EvraEvent }>();
+		const byNote = new Map<string, { file: TFile; ev: TimelineEvent }>();
 		[...doc.events].sort((a, b) => a.t - b.t).forEach((e) => {
 			if (!e.file) return;
 			const f = this.resolve(e.file);
@@ -374,13 +374,13 @@ export class EvraView extends TextFileView {
 	}
 
 	/** Remember what the timeline wants as it opens, so only later changes to it count as changes. */
-	private seedWanted(doc: EvraDoc) {
+	private seedWanted(doc: TimelineDoc) {
 		this.wanted.clear();
 		if (!doc.opts.sync.on) return;
 		for (const [f, props] of this.desiredWrites(doc).writes) this.wanted.set(f.path, JSON.stringify(props));
 	}
 
-	private async syncNotes(doc: EvraDoc) {
+	private async syncNotes(doc: TimelineDoc) {
 		const sy = doc.opts.sync;
 		if (!sy || !sy.on || this.timeline?.getDoc() !== doc) return;
 		const { writes, linked } = this.desiredWrites(doc), shared = this.plugin.propWrites, todo: typeof writes = [];
@@ -410,7 +410,7 @@ export class EvraView extends TextFileView {
 		}
 	}
 
-	private async stripSyncedProps(doc: EvraDoc): Promise<number> {
+	private async stripSyncedProps(doc: TimelineDoc): Promise<number> {
 		const sy = doc.opts.sync;
 		const keys = new Set([...(sy.written || []), ...liveFields(doc).map((x) => x[1])].filter(Boolean)); // only properties Ouroboros writes, never ones it merely could
 		const paths = new Set(sy.notes || []);

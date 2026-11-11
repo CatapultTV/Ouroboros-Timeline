@@ -76,8 +76,8 @@ await p.send('Emulation.setEmulatedMedia', { features: [] });
 // narrow + horizontal
 await p.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: false }); await p.sleep(600); await add('phone');
 await p.send('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false }); await p.sleep(400);
-await p.ev(`app.commands.executeCommandById('evra:direction-ltr')`); await add('ltr');
-await p.ev(`app.commands.executeCommandById('evra:direction-ttb')`);
+await p.ev(`app.commands.executeCommandById('ouroboros-timelines:direction-ltr')`); await add('ltr');
+await p.ev(`app.commands.executeCommandById('ouroboros-timelines:direction-ttb')`);
 // embed in reading view
 await p.ev(`app.vault.create('EmbedCss.md', '\\u0060\\u0060\\u0060evra\\ntimeline: Chronicle of Veld\\n\\u0060\\u0060\\u0060\\n').then(() => 1)`);
 await p.ev(`app.workspace.getLeaf(false).setViewState({type: 'markdown', state: {file: 'EmbedCss.md', mode: 'preview'}}).then(() => 1)`); await add('embed');

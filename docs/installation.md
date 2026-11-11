@@ -1,27 +1,19 @@
 # Installation
 
-Ouroboros Timelines needs Obsidian 1.6 or later. It works on a computer, a phone and a tablet. Install the packaged
-plugin files in your vault's `.obsidian/plugins/ouroboros-timelines/` directory.
+Ouroboros Timelines needs Obsidian 1.6 or later. Native timelines use `.ob` files and `ob` embeds.
 
-## Installing
+## Manual installation from GitHub
 
-1. Open **Settings → Community plugins**. If community plugins are off, turn them on.
-2. Copy `main.js`, `manifest.json`, and `styles.css` into `.obsidian/plugins/ouroboros-timelines/`.
-3. Choose **Install**, then **Enable**.
+1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest GitHub release](https://github.com/CatapultTV/Ouroboros-Timeline/releases).
+2. Copy them into `.obsidian/plugins/ouroboros-timelines/` in your vault.
+3. In Obsidian, open **Settings > Community plugins**, then enable Ouroboros Timelines.
 
-## Updating
+There is no Ouroboros Timelines listing in the Community Plugin Directory at this time. Directory installation and automatic updates are unavailable; download a newer GitHub release to update manually.
 
-Obsidian keeps Ouroboros Timelines up to date: **Settings → Community plugins → Check for updates**.
-
-The [changelog](../CHANGELOG.md) says what changed in each version. Evra won't open a timeline saved by a newer
-version of itself with a file format it doesn't know, so going back to an older version never rewrites what a newer
-one wrote.
+The [changelog](../CHANGELOG.md) lists changes in each version. This project is in the `0.x` prerelease series; releases before 1.0 are testing releases and may be marked as prereleases. Native file format version 1 is tracked separately from the plugin version.
 
 ## Turning it off
 
-Disable **Evra Timelines** under **Settings → Community plugins**. Your timelines stay where they are: each is a
-readable JSON file ending in `.evra`. Your notes stay as they are too. If note sync wrote timeline properties into
-them and you'd rather they were gone, remove them first with **Remove timeline properties from linked notes**
-([Linked notes and note sync](notes.md#which-notes-are-touched)).
+Disable **Ouroboros Timelines** under **Settings > Community plugins**. Your native `.ob` timelines and notes remain in the vault. Legacy `.evra` files also remain untouched.
 
 Next: [Getting started](getting-started.md)

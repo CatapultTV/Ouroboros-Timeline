@@ -1,4 +1,4 @@
-import type { Calendar, Era, EvraDoc, EvraEvent, Formats, LeapRule } from './types';
+import type { Calendar, Era, TimelineDoc, TimelineEvent, Formats, LeapRule } from './types';
 
 /* The calendar engine.
    Months each have their own length. Dates are stored as a count of days from year 0, day 1.
@@ -112,7 +112,7 @@ export function repairEras(eras: Era[]): void {
 	fit(null);
 }
 
-export function makeEngine(getDoc: () => EvraDoc) {
+export function makeEngine(getDoc: () => TimelineDoc) {
 	// Facts about each calendar (the document's, or an old copy being remapped) are computed once per calendar object.
 	// Anything that edits the months or leap rules in place calls reset().
 	let infoCache = new WeakMap<Calendar, CalInfo>(), CI: CalInfo = null, ciCal: Calendar = null;
@@ -213,7 +213,7 @@ export function makeEngine(getDoc: () => EvraDoc) {
 		if (v.d === 0 && ci().M > 1) return tpl(f.dateMonth, v);
 		return tpl(f.dateDay, v);
 	}
-	function fmtRange(ev: Pick<EvraEvent, 't' | 'end' | 'os' | 'oe'>): string {
+	function fmtRange(ev: Pick<TimelineEvent, 't' | 'end' | 'os' | 'oe'>): string {
 		const c = S().cal, f = c.fmt, a = parts(ev.t), b = parts(ev.end), ys = c.yearStart;
 		if (f.shortRange && !ev.os && !ev.oe && a.r === 0 && b.r === 0 && a.yr + ys >= 0) {
 			const ea = eraVals(ev.t, a.yr), eb = eraVals(ev.end, b.yr);
@@ -221,7 +221,7 @@ export function makeEngine(getDoc: () => EvraDoc) {
 		}
 		return tpl(f.range, { start: ev.os ? '…' : fmt(ev.t), end: ev.oe ? f.ongoing || 'ongoing' : fmt(ev.end) });
 	}
-	function evDate(ev: EvraEvent): string {
+	function evDate(ev: TimelineEvent): string {
 		if (ev.end != null) return fmtRange(ev);
 		const d = fmt(ev.t);
 		return ev.circa ? tpl(S().cal.fmt.circa || DEFAULT_FMT.circa, { date: d }) : d;

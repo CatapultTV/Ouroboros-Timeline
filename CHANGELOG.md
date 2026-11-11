@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2
+
+- Repaired E2E plugin identity and added native OB coverage while retaining Evra compatibility tests.
+- Updated documentation, licensing attribution, and prerelease guidance.
+
 ## 0.1.1
 
 - Established the independent `ouroboros-timelines` plugin identity and native `.ob`/`format: "ob"` timeline format.

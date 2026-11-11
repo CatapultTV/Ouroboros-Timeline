@@ -4,22 +4,22 @@ import { renderEmbed } from './embed';
 import { emptyDoc, SAMPLE_COVER, SAMPLE_NOTES, sampleDoc } from './model';
 import { formatForExtension, readTimeline, writeTimeline } from './format';
 import { NoteCache } from './notes';
-import { DEFAULT_SETTINGS, EvraSettingTab, type EvraSettings } from './settings';
+import { DEFAULT_SETTINGS, OuroborosSettingTab, type OuroborosSettings } from './settings';
 import type { PropValue } from './sync';
-import { EvraView, linkMatchesPath, VIEW_TYPE } from './view';
+import { OuroborosView, linkMatchesPath, VIEW_TYPE } from './view';
 
 // the timeline icon: a line of time with marks on either side
 const ICON_SVG = '<path d="M50 9v82M25 28h19M56 50h19M25 72h19" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round"/>';
 
 export default class OuroborosPlugin extends Plugin {
-	settings: EvraSettings;
+	settings: OuroborosSettings;
 	notes: NoteCache;
 	private noteLeaf: WorkspaceLeaf | null = null;
 	/** The last timeline properties Ouroboros wrote to each note, and which open timeline wrote them. */
-	propWrites = new Map<string, { view: EvraView; props: Record<string, PropValue> }>();
+	propWrites = new Map<string, { view: OuroborosView; props: Record<string, PropValue> }>();
 	private redrawT = 0;
 	private renames: [TFile, string][] = []; // note renames waiting to be applied to closed timelines
-	private renamed = new Set<EvraView>(); // open views already told about them
+	private renamed = new Set<OuroborosView>(); // open views already told about them
 	private renameT = 0;
 
 	async onload() {
@@ -27,19 +27,19 @@ export default class OuroborosPlugin extends Plugin {
 		this.notes = new NoteCache(this.app, () => this.redrawSoon());
 		addIcon('ouroboros-timelines', ICON_SVG);
 
-		this.registerView(VIEW_TYPE, (leaf) => new EvraView(leaf, this));
+		this.registerView(VIEW_TYPE, (leaf) => new OuroborosView(leaf, this));
 		this.registerExtensions(['ob'], VIEW_TYPE);
 		if (this.settings.evraCompatibility) this.registerExtensions(['evra'], VIEW_TYPE);
 		this.registerHoverLinkSource(VIEW_TYPE, { display: 'Ouroboros Timelines', defaultMod: false });
 		this.registerMarkdownCodeBlockProcessor('ob', (src, el, ctx) => renderEmbed(this, src, el, ctx));
 		if (this.settings.evraCompatibility) for (const lang of ['evra', 'throughline']) this.registerMarkdownCodeBlockProcessor(lang, (src, el, ctx) => renderEmbed(this, src, el, ctx));
-		this.addSettingTab(new EvraSettingTab(this.app, this));
+		this.addSettingTab(new OuroborosSettingTab(this.app, this));
 
 		this.addRibbonIcon('ouroboros-timelines', 'New timeline', () => { void this.createTimeline(); });
 		this.addCommand({ id: 'new-timeline', name: 'New timeline', callback: () => { void this.createTimeline(); } });
 		this.addCommand({ id: 'open-sample', name: 'Open the sample timeline', callback: () => { void this.createSample(); } });
 		this.addCommand({
-			id: 'convert-evra-to-ob', name: 'Create native OB copy of current Evra timeline',
+			id: 'convert-evra-to-ob', name: 'Create native file copy from current legacy timeline',
 			checkCallback: (checking) => {
 				const f = this.app.workspace.getActiveFile();
 				if (!(f instanceof TFile) || f.extension !== 'evra' || !this.settings.evraCompatibility) return false;
@@ -52,7 +52,7 @@ export default class OuroborosPlugin extends Plugin {
 				id: c.id,
 				name: c.name,
 				checkCallback: (checking) => {
-				const view = this.app.workspace.getActiveViewOfType(EvraView);
+				const view = this.app.workspace.getActiveViewOfType(OuroborosView);
 					if (!view || !view.timeline) return false;
 					if (!checking) view.timeline.run(c.id);
 					return true;
@@ -72,7 +72,7 @@ export default class OuroborosPlugin extends Plugin {
 		this.app.workspace.onLayoutReady(() => this.registerEvent(this.app.vault.on('create', (f) => { if (f instanceof TFile && f.extension === 'md') this.forEachView((v) => v.linksChanged()); })));
 		this.registerEvent(this.app.vault.on('rename', (f, oldPath) => { if (f instanceof TFile && f.extension === 'md') this.noteRenamed(f, oldPath); }));
 		this.registerEvent(this.app.workspace.on('css-change', () => this.forEachView((v) => v.timeline?.cssChanged())));
-		this.registerEvent(this.app.workspace.on('active-leaf-change', (leaf) => { if (leaf && leaf.view instanceof EvraView) leaf.view.timeline?.focus(); }));
+		this.registerEvent(this.app.workspace.on('active-leaf-change', (leaf) => { if (leaf && leaf.view instanceof OuroborosView) leaf.view.timeline?.focus(); }));
 	}
 
 	onunload() {
@@ -82,8 +82,8 @@ export default class OuroborosPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		const data = (await this.loadData()) as Partial<EvraSettings> | null;
-		let migrated: Partial<EvraSettings> | null = null;
+		const data = (await this.loadData()) as Partial<OuroborosSettings> | null;
+		let migrated: Partial<OuroborosSettings> | null = null;
 		try {
 			const adapter = this.app.vault.adapter as unknown as { exists?: (path: string) => Promise<boolean>; read?: (path: string) => Promise<string> };
 			const legacyPath = `${this.app.vault.configDir}/plugins/evra/data.json`;
@@ -98,8 +98,8 @@ export default class OuroborosPlugin extends Plugin {
 	}
 	async saveSettings() { await this.saveData(this.settings); }
 
-	private forEachView(fn: (v: EvraView) => void) {
-		this.app.workspace.getLeavesOfType(VIEW_TYPE).forEach((l) => { if (l.view instanceof EvraView) fn(l.view); });
+	private forEachView(fn: (v: OuroborosView) => void) {
+		this.app.workspace.getLeavesOfType(VIEW_TYPE).forEach((l) => { if (l.view instanceof OuroborosView) fn(l.view); });
 	}
 	private redrawSoon() {
 		window.clearTimeout(this.redrawT);
@@ -161,7 +161,7 @@ export default class OuroborosPlugin extends Plugin {
 					const sn = doc.opts && doc.opts.sync && doc.opts.sync.notes;
 					if (Array.isArray(sn) && sn.includes(oldPath)) { doc.opts.sync.notes = sn.map((p) => (p === oldPath ? file.path : p)); changed = true; }
 				}
-				return changed ? writeTimeline(doc as import('./types').EvraDoc, fileFormat) : data;
+				return changed ? writeTimeline(doc as import('./types').TimelineDoc, fileFormat) : data;
 			});
 		}
 	}
@@ -261,7 +261,7 @@ export default class OuroborosPlugin extends Plugin {
 		};
 		const f = await this.app.vault.create(evraPath, writeTimeline(sampleDoc(link), 'ob'));
 		await this.app.workspace.getLeaf('tab').openFile(f);
-		new Notice('Opened the Ouroboros sample timeline. Its notes are in the sample folder next to it.');
+		new Notice('Opened the sample timeline. Its notes are in the sample folder next to it.');
 	}
 
 	/** Create a separate native copy of a legacy timeline; the source is never modified. */

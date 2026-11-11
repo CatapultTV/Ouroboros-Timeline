@@ -3,7 +3,7 @@ export const specs = [];
 const test = (name, fn) => specs.push({ name, fn });
 const fmOf = (p, path) => p.ev(`(() => { const f = app.vault.getAbstractFileByPath(${JSON.stringify(path)}); const c = f && app.metadataCache.getFileCache(f); return JSON.parse(JSON.stringify((c && c.frontmatter) || {})); })()`);
 const syncOn = async (p, h) => { await h.openSheet('notes'); const on = await h.sheet('[data-k=syOn]'); await p.click(on.x, on.y); await p.sleep(1500); await p.key('Escape'); await p.sleep(100); };
-const viewOf = (path) => `app.workspace.getLeavesOfType('evra').map(l => l.view).find(v => v.file && v.file.path === ${JSON.stringify(path)})`;
+const viewOf = (path) => `app.workspace.getLeavesOfType('ouroboros-timelines').map(l => l.view).find(v => v.file && v.file.path === ${JSON.stringify(path)})`;
 const tOf = (p, path, file) => p.ev(`(${viewOf(path)}).timeline.getDoc().events.find(e => e.file === ${JSON.stringify(file)}).t`);
 /** Count writes to a file from now on. */
 const countWrites = (p, path) => p.ev(`(() => { window.__w = 0; if (window.__wref) app.vault.offref(window.__wref); window.__wref = app.vault.on('modify', f => { if (f.path === ${JSON.stringify(path)}) window.__w++; }); return 1; })()`);

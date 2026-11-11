@@ -5,11 +5,11 @@ belong to the plugin.
 
 ## The plugin's settings
 
-### File Format Compatibility
+### File format compatibility
 
-**Enable Evra compatibility** is enabled by default and allows legacy `.evra` files and their `evra`/`throughline` embeds to be opened. Disable it to use native `.ob` files only; reload Obsidian after changing it so file and embed registrations are refreshed. Changing the setting never deletes or modifies existing files.
+**Enable legacy timeline compatibility** is enabled by default and allows legacy `.evra` files and their `evra`/`throughline` embeds to be opened. Disable it to use native `.ob` files only; reload Obsidian after changing it so file and embed registrations are refreshed. Changing the setting never deletes or modifies existing files.
 
-In Obsidian, **Settings → Evra Timelines**.
+In Obsidian, **Settings → Ouroboros Timelines**.
 
 ### Files
 

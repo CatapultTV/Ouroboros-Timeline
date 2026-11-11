@@ -1,5 +1,5 @@
 import { Notice, PluginSettingTab, Setting, type App, type SettingDefinitionItem } from 'obsidian';
-import type EvraPlugin from './main';
+import type OuroborosPlugin from './main';
 import type { TimelineDefaults } from './types';
 
 export interface OuroborosSettings {
@@ -28,8 +28,8 @@ const TEXT = {
 } as const;
 const OPEN_IN = { split: 'Beside the timeline', tab: 'In a new tab', same: 'In place of the timeline' };
 
-export class EvraSettingTab extends PluginSettingTab {
-	constructor(app: App, private plugin: EvraPlugin) { super(app, plugin); }
+export class OuroborosSettingTab extends PluginSettingTab {
+	constructor(app: App, private plugin: OuroborosPlugin) { super(app, plugin); }
 
 	private startingDesc(): string {
 		const d = this.plugin.settings.defaults;
@@ -53,7 +53,7 @@ export class EvraSettingTab extends PluginSettingTab {
 				} },
 				{ name: TEXT.sample[0], desc: TEXT.sample[1], render: (st) => { st.addButton((b) => b.setButtonText('Open the sample').onClick(() => { void this.plugin.createSample(); })); } },
 			] },
-			{ type: 'group', heading: 'File Format Compatibility', items: [
+			{ type: 'group', heading: 'File format compatibility', items: [
 				{ name: 'Enable Evra compatibility', desc: 'Allow Ouroboros Timelines to recognise, open and edit legacy Evra .evra timeline files.', control: { type: 'toggle', key: 'evraCompatibility' } },
 			] },
 		];
@@ -62,7 +62,7 @@ export class EvraSettingTab extends PluginSettingTab {
 	setControlValue(key: string, value: unknown): Promise<void> {
 		const s = this.plugin.settings;
 		if (key === 'newFileFolder' || key === 'noteFolder') s[key] = typeof value === 'string' ? value.trim() : '';
-		else if (key === 'openNotesIn' && typeof value === 'string' && value in OPEN_IN) s.openNotesIn = value as EvraSettings['openNotesIn'];
+		else if (key === 'openNotesIn' && typeof value === 'string' && value in OPEN_IN) s.openNotesIn = value as OuroborosSettings['openNotesIn'];
 		else if (key === 'evraCompatibility' && typeof value === 'boolean') s.evraCompatibility = value;
 		return this.plugin.saveSettings();
 	}
@@ -87,7 +87,7 @@ export class EvraSettingTab extends PluginSettingTab {
 			.addDropdown((d) => d
 				.addOptions(OPEN_IN)
 				.setValue(s.openNotesIn)
-				.onChange(async (v) => { s.openNotesIn = v as EvraSettings['openNotesIn']; await this.plugin.saveSettings(); }));
+				.onChange(async (v) => { s.openNotesIn = v as OuroborosSettings['openNotesIn']; await this.plugin.saveSettings(); }));
 
 		new Setting(containerEl).setName('New timelines').setHeading();
 		new Setting(containerEl)
@@ -99,9 +99,9 @@ export class EvraSettingTab extends PluginSettingTab {
 			.setDesc(TEXT.sample[1])
 			.addButton((b) => b.setButtonText('Open the sample').onClick(() => { void this.plugin.createSample(); }));
 
-		new Setting(containerEl).setName('File Format Compatibility').setHeading();
+		new Setting(containerEl).setName('File format compatibility').setHeading();
 		new Setting(containerEl)
-			.setName('Enable Evra compatibility')
+			.setName('Enable legacy timeline compatibility')
 			.setDesc('Allow Ouroboros Timelines to recognise, open and edit legacy Evra .evra timeline files.')
 			.addToggle((t) => t.setValue(s.evraCompatibility).onChange(async (v) => {
 				s.evraCompatibility = v; await this.plugin.saveSettings();

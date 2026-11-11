@@ -11,7 +11,7 @@ export interface RelPin {
 	at?: number; // where the anchor was last seen
 }
 
-export interface EvraEvent {
+export interface TimelineEvent {
 	id: string;
 	t: number;
 	end?: number; // a span when set
@@ -157,7 +157,7 @@ export interface TimelineDoc {
 	orientation: Orientation;
 	cardWidth: number;
 	eras: Era[];
-	events: EvraEvent[];
+	events: TimelineEvent[];
 	now?: number | null;
 	views?: SavedView[];
 	lastView?: [number, number];
@@ -170,8 +170,11 @@ export interface TimelineDoc {
 }
 
 export type OBDoc = TimelineDoc;
-/** @deprecated Use TimelineDoc or OBDoc for new code. */
+/** @deprecated Use TimelineDoc for new code. */
 export type EvraDoc = TimelineDoc;
+/** @deprecated Use TimelineDoc or OBDoc for new code. */
+/** @deprecated Use TimelineEvent for new code. */
+export type EvraEvent = TimelineEvent;
 
 /** Settings shared by every timeline, saved with the plugin. */
 export interface TimelineDefaults {

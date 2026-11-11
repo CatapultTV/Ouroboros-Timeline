@@ -11,7 +11,7 @@ const setFm = (p, path, js) => p.ev(`app.fileManager.processFrontMatter(app.vaul
 const rename = (p, from, to) => p.ev(`app.fileManager.renameFile(app.vault.getAbstractFileByPath(${J(from)}), ${J(to)}).then(() => 1)`);
 const folder = (p, path) => p.ev(`app.vault.createFolder(${J(path)}).then(() => 1, () => 1)`);
 const dest = (p, link, from = 'Chronicle of Veld.evra') => p.ev(`(() => { const f = app.metadataCache.getFirstLinkpathDest(${J(link)}.split('|')[0].split('#')[0], ${J(from)}); return f ? f.path : null; })()`);
-const closeAll = (p) => p.ev(`(async () => { for (const l of app.workspace.getLeavesOfType('evra')) { await l.view.save?.(); l.detach(); } })().then(() => 1)`);
+const closeAll = (p) => p.ev(`(async () => { for (const l of app.workspace.getLeavesOfType('ouroboros-timelines')) { await l.view.save?.(); l.detach(); } })().then(() => 1)`);
 const readJ = async (p, path) => JSON.parse(await p.ev(`app.vault.adapter.read(${J(path)})`));
 const within = (pr, ms, what) => Promise.race([pr, new Promise((_, j) => setTimeout(() => j(new Error('timed out: ' + what)), ms))]);
 const drop = (p, { draggable = 'null', text = '' } = {}, x = 150, y = 300) => p.ev(`(() => { const s = document.querySelector('${A} .stage'); const r = s.getBoundingClientRect(); app.dragManager.draggable = ${draggable}; const dt = new DataTransfer(); if (${J(text)}) dt.setData('text/plain', ${J(text)}); s.dispatchEvent(new DragEvent('dragover', {bubbles: true, cancelable: true, clientX: r.x + ${x}, clientY: r.y + ${y}, dataTransfer: dt})); s.dispatchEvent(new DragEvent('drop', {bubbles: true, cancelable: true, clientX: r.x + ${x}, clientY: r.y + ${y}, dataTransfer: dt})); app.dragManager.draggable = null; return 1; })()`);
@@ -222,7 +222,7 @@ test('R2N18 embed: renders and opens the timeline in live preview (source mode)'
 	const b = await p.at('.workspace-leaf.mod-active .markdown-source-view .evra-embed li button');
 	t.ok(b, 'item button');
 	await p.click(b.x, b.y); await p.sleep(1800);
-	t.eq(await p.ev(`app.workspace.getLeavesOfType('evra').length`), 1, 'timeline opened');
+	t.eq(await p.ev(`app.workspace.getLeavesOfType('ouroboros-timelines').length`), 1, 'timeline opened');
 	t.ok(await p.ev(`!!document.querySelector('.evra-root .evra-card.sel')`), 'a card is selected');
 	t.ok(await p.ev(`app.workspace.getLeavesOfType('markdown').some(l => l.view.file && l.view.file.path === 'E4.md')`) || true, 'note leaf');
 });
@@ -267,14 +267,14 @@ test('R2N23 embed: clicking an item when the timeline is open in a background ta
 	const b = await p.ev(`(() => { const x = [...document.querySelectorAll('.evra-embed li button')].find(b => b.offsetParent); if (!x) return null; const r = x.getBoundingClientRect(); return {x: r.x + r.width / 2, y: r.y + r.height / 2}; })()`);
 	t.ok(b, 'embed rendered: ' + await p.ev(`app.workspace.activeLeaf.view.getViewType() + ' ' + (app.workspace.activeLeaf.view.file||{}).path + ' embeds=' + document.querySelectorAll('.evra-embed').length + ' txt=' + [...document.querySelectorAll('.evra-embed')].map(e => e.textContent.slice(0,50)).join('|')`));
 	await p.click(b.x, b.y); await p.sleep(1500);
-	t.eq(await p.ev(`app.workspace.getLeavesOfType('evra').length`), 1, 'no second copy');
-	t.eq(await p.ev(`app.workspace.activeLeaf.view.getViewType()`), 'evra', 'timeline in front');
+	t.eq(await p.ev(`app.workspace.getLeavesOfType('ouroboros-timelines').length`), 1, 'no second copy');
+	t.eq(await p.ev(`app.workspace.activeLeaf.view.getViewType()`), 'ouroboros-timelines', 'timeline in front');
 	t.ok(await p.ev(`!!document.querySelector('${A} .evra-card.sel')`), 'card selected');
 });
 test('R2N24 embed: unsaved changes in an open timeline reach the embed after the save', async (p, h, t) => {
 	await h.open();
 	await p.ev(`app.workspace.getLeaf('split').setViewState({type: 'markdown', state: {file: 'Veld.md', mode: 'preview'}}).then(() => 1)`); await p.sleep(1200);
-	await p.ev(`app.workspace.setActiveLeaf(app.workspace.getLeavesOfType('evra')[0], {focus: true})`); await p.sleep(200);
+	await p.ev(`app.workspace.setActiveLeaf(app.workspace.getLeavesOfType('ouroboros-timelines')[0], {focus: true})`); await p.sleep(200);
 	const c = await h.card('Siege of the Keep begins', '.dt'); await p.dbl(c.x, c.y); await p.sleep(300);
 	await p.key('a', 'ctrl'); await p.type('Siege retitled'); await p.key('Escape'); await p.sleep(3500);
 	const txt = await p.ev(`[...document.querySelectorAll('.evra-embed')].map(e => e.textContent).join(' ')`);
@@ -287,7 +287,7 @@ test('R2N25 renaming a note linked by two open timelines updates both and both f
 	await h.open();
 	await p.ev(`app.workspace.getLeaf('split').openFile(app.vault.getAbstractFileByPath('Other.evra')).then(() => 1)`); await p.sleep(1000);
 	await rename(p, 'Treaty of Sallow.md', 'Treaty Two.md'); await p.sleep(1500);
-	await p.ev(`Promise.all(app.workspace.getLeavesOfType('evra').map(l => l.view.save())).then(() => 1)`);
+	await p.ev(`Promise.all(app.workspace.getLeavesOfType('ouroboros-timelines').map(l => l.view.save())).then(() => 1)`);
 	const a = await readJ(p, 'Chronicle of Veld.evra'), b = await readJ(p, 'Other.evra');
 	t.ok(a.events.some((e) => e.file === 'Treaty Two'), 'chronicle file');
 	t.eq(b.events[0].file, 'Treaty Two', 'other file');
@@ -298,7 +298,7 @@ test('R2N26 two timelines with sync on and different calendars do not fight over
 	await h.open(); await syncOn(p, h);
 	await p.ev(`app.workspace.getLeaf('split').openFile(app.vault.getAbstractFileByPath('Other.evra')).then(() => 1)`); await p.sleep(1000);
 	// nudge the Other card so it writes
-	await p.ev(`(() => { const v = app.workspace.getLeavesOfType('evra').map(l => l.view).find(v => v.file.path === 'Other.evra'); v.timeline.focusEvent('o1'); return 1; })()`); await p.sleep(800);
+	await p.ev(`(() => { const v = app.workspace.getLeavesOfType('ouroboros-timelines').map(l => l.view).find(v => v.file.path === 'Other.evra'); v.timeline.focusEvent('o1'); return 1; })()`); await p.sleep(800);
 	await p.key('ArrowDown'); await p.sleep(1200);
 	let mods = 0;
 	await p.ev(`(() => { window.__mods = 0; window.__modRef = app.vault.on('modify', f => { if (f.path === 'Treaty of Sallow.md') window.__mods++; }); return 1; })()`);
@@ -489,7 +489,7 @@ test('R2R09 leaks: 12 open/close cycles of a note with three embeds leave no lis
 test('R2R10 dragging a split divider back and forth while panning keeps cards inside the pane, no errors', async (p, h, t) => {
 	await h.open();
 	await p.ev(`app.workspace.getLeaf('split').setViewState({type: 'markdown', state: {file: 'Veld.md', mode: 'preview'}}).then(() => 1)`); await p.sleep(800);
-	await p.ev(`app.workspace.setActiveLeaf(app.workspace.getLeavesOfType('evra')[0], {focus: true})`); await p.sleep(200);
+	await p.ev(`app.workspace.setActiveLeaf(app.workspace.getLeavesOfType('ouroboros-timelines')[0], {focus: true})`); await p.sleep(200);
 	const hnd = await p.ev(`(() => { const e = [...document.querySelectorAll('.mod-root .workspace-leaf-resize-handle')].map(e => e.getBoundingClientRect()).filter(r => r.height > 200 && r.width > 0 && r.width < 20)[0]; return e ? {x: e.x + e.width / 2, y: e.y + e.height / 2} : null; })()`);
 	t.ok(hnd, 'resize handle');
 	const s = await h.stage();
@@ -512,12 +512,12 @@ test('R2R11 a timeline in a very narrow side pane (240px) still lays out and acc
 	t.ok(w > 0, 'side pane timeline has width ' + w);
 	t.ok(await p.ev(`document.querySelectorAll('.workspace-leaf.mod-active .evra-root .evra-card').length > 0`), 'cards in the side pane');
 	const d = await h.doc(); t.ok(valid(d), 'doc valid');
-	await p.ev(`(() => { app.workspace.getLeavesOfType('evra').forEach(l => l.detach()); app.workspace.rightSplit.collapse(); return 1; })()`);
+	await p.ev(`(() => { app.workspace.getLeavesOfType('ouroboros-timelines').forEach(l => l.detach()); app.workspace.rightSplit.collapse(); return 1; })()`);
 });
 
 /* ---------- fuzz ---------- */
 const rng = (seed) => () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);
-const keepFront = (p) => p.ev(`(() => { document.querySelectorAll('.modal-close-button').forEach(b => b.click()); const l = app.workspace.getLeavesOfType('evra')[0]; if (l && app.workspace.activeLeaf !== l) app.workspace.setActiveLeaf(l, {focus: true}); return 1; })()`);
+const keepFront = (p) => p.ev(`(() => { document.querySelectorAll('.modal-close-button').forEach(b => b.click()); const l = app.workspace.getLeavesOfType('ouroboros-timelines')[0]; if (l && app.workspace.activeLeaf !== l) app.workspace.setActiveLeaf(l, {focus: true}); return 1; })()`);
 async function fuzz(p, h, t, { seed, ms, notes = false, panes = false, file = 'Chronicle of Veld.evra', resize = false }) {
 	await h.open(file);
 	if (notes) await syncOn(p, h);
@@ -556,7 +556,7 @@ async function fuzz(p, h, t, { seed, ms, notes = false, panes = false, file = 'C
 	t.eq(new Set(d.events.map((e) => e.id)).size, d.events.length, 'unique ids');
 	if (panes) {
 		await p.sleep(800);
-		const docs = await p.ev(`app.workspace.getLeavesOfType('evra').map(l => JSON.stringify(l.view.timeline.getDoc().events.map(e => [e.id, e.t])))`);
+		const docs = await p.ev(`app.workspace.getLeavesOfType('ouroboros-timelines').map(l => JSON.stringify(l.view.timeline.getDoc().events.map(e => [e.id, e.t])))`);
 		t.ok(docs.every((x) => x === docs[0]), 'both panes agree on the events');
 	}
 	return i;
@@ -980,9 +980,9 @@ test('R2M15 two synced timelines: a card move in one reaches the note; closing a
 	const main = await evT(h, id), y = Math.floor(main / 360);
 	t.eq((await fmOf(p, 'Treaty of Sallow.md'))['timeline-year'], y, 'note has the moved year');
 	// close Other, reopen it: its stale card must not rewrite the note back
-	await p.ev(`(async () => { const l = app.workspace.getLeavesOfType('evra').find(l => l.view.file.path === 'Other.evra'); await l.view.save(); l.detach(); })().then(() => 1)`); await p.sleep(500);
+	await p.ev(`(async () => { const l = app.workspace.getLeavesOfType('ouroboros-timelines').find(l => l.view.file.path === 'Other.evra'); await l.view.save(); l.detach(); })().then(() => 1)`); await p.sleep(500);
 	await p.ev(`app.workspace.getLeaf('split').openFile(app.vault.getAbstractFileByPath('Other.evra')).then(() => 1)`); await p.sleep(3000);
 	t.eq((await fmOf(p, 'Treaty of Sallow.md'))['timeline-year'], y, 'reopening Other does not write its old year back');
-	const mainNow = await p.ev(`app.workspace.getLeavesOfType('evra').map(l => l.view).find(v => v.file.path === ${J(CH)}).timeline.getDoc().events.find(e => e.id === ${J(id)}).t`);
+	const mainNow = await p.ev(`app.workspace.getLeavesOfType('ouroboros-timelines').map(l => l.view).find(v => v.file.path === ${J(CH)}).timeline.getDoc().events.find(e => e.id === ${J(id)}).t`);
 	t.eq(Math.floor(mainNow / 360), y, 'main card stays');
 });
