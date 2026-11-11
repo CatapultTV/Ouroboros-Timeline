@@ -13,6 +13,18 @@ ok(readTimeline(JSON.parse(writeTimeline(native, 'ob')), 'Chronicle', 'ob').form
 const legacy = JSON.parse(writeTimeline(source, 'evra'));
 ok(readTimeline(legacy, 'Chronicle', 'evra').format === 'evra', 'legacy reader');
 ok(writeTimeline(readTimeline(legacy, 'Chronicle', 'evra'), 'evra').includes('"format": "evra"'), 'legacy writer');
+// Conversion uses the shared reader and target writer; validate the target and compare every normalized field.
+for (const [from, to] of [['evra', 'ob'], ['ob', 'evra']] as const) {
+	const original = writeTimeline(source, from);
+	const converted = writeTimeline(readTimeline(JSON.parse(original), 'Chronicle', from), to);
+	const reopened = readTimeline(JSON.parse(converted), 'Chronicle', to);
+	ok(JSON.parse(converted).format === to, `${from}-to-${to} target identifier`);
+	const expected = readTimeline(JSON.parse(original), 'Chronicle', from);
+	reopened.format = expected.format;
+	eq(reopened, expected, `${from}-to-${to} data preserved`);
+	ok(original === writeTimeline(readTimeline(JSON.parse(original), 'Chronicle', from), from), `${from}-to-${to} source remains unchanged`);
+}
+
 let refused = false;
 try { readTimeline({ ...legacy, format: 'evra', version: 2 }, 'Chronicle', 'evra'); } catch (e) { refused = e instanceof UnsupportedFile; }
 ok(refused, 'unsupported legacy files are refused');

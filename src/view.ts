@@ -43,6 +43,11 @@ export class OuroborosView extends TextFileView {
 	getIcon(): string { return 'ouroboros-timelines'; }
 	getDisplayText(): string { return this.file ? this.file.basename : 'Timeline'; }
 
+	async onLoadFile(file: TFile): Promise<void> {
+		await super.onLoadFile(file);
+		this.plugin.showLegacyPrompt(file);
+	}
+
 	getViewData(): string {
 		if (this.broken != null || !this.timeline) return this.broken ?? this.data;
 		return writeTimeline(this.timeline.getDoc(), this.fileFormat());

@@ -12,12 +12,13 @@ export interface OuroborosSettings {
 	defaults: TimelineDefaults | null;
 	/** Recognise and edit legacy Evra timelines. */
 	evraCompatibility: boolean;
+	evraPromptDecisions: Record<string, 'keep' | 'ob'>;
 }
 
 /** @deprecated Use OuroborosSettings. */
 export type EvraSettings = OuroborosSettings;
 
-export const DEFAULT_SETTINGS: OuroborosSettings = { newFileFolder: '', noteFolder: '', openNotesIn: 'split', defaults: null, evraCompatibility: true };
+export const DEFAULT_SETTINGS: OuroborosSettings = { newFileFolder: '', noteFolder: '', openNotesIn: 'split', defaults: null, evraCompatibility: true, evraPromptDecisions: {} };
 
 /* Settings for the plugin as a whole. Each timeline's own calendar, formats and colors are in its settings panel. */
 const TEXT = {

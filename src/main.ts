@@ -1,4 +1,4 @@
-import { addIcon, normalizePath, Notice, Platform, Plugin, TFile, TFolder, type PaneType, type WorkspaceLeaf } from 'obsidian';
+import { addIcon, Modal, normalizePath, Notice, Platform, Plugin, TFile, TFolder, type App, type PaneType, type WorkspaceLeaf } from 'obsidian';
 import { TIMELINE_COMMANDS } from './commands';
 import { renderEmbed } from './embed';
 import { emptyDoc, SAMPLE_COVER, SAMPLE_NOTES, sampleDoc } from './model';
@@ -10,6 +10,31 @@ import { OuroborosView, linkMatchesPath, VIEW_TYPE } from './view';
 
 // the timeline icon: a line of time with marks on either side
 const ICON_SVG = '<path d="M50 9v82M25 28h19M56 50h19M25 72h19" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round"/>';
+
+class ConversionModal extends Modal {
+	constructor(app: App, private from: 'ob' | 'evra', private to: 'ob' | 'evra', private create: () => void) { super(app); }
+	onOpen() {
+		this.setTitle(`Convert ${this.from === 'ob' ? 'Ouroboros Timelines (OB)' : 'Legacy Evra'} to ${this.to === 'ob' ? 'Ouroboros Timelines (OB)' : 'Legacy Evra'}`);
+		this.contentEl.createEl('p', { text: `A separate ${this.to === 'ob' ? '.ob' : '.evra'} file will be created. The original ${this.from === 'ob' ? '.ob' : '.evra'} file will remain unchanged.` });
+		this.contentEl.createEl('p', { text: 'If the destination name already exists, a numbered copy will be created. No existing timeline will be overwritten.' });
+		const buttons = this.contentEl.createDiv({ cls: 'modal-button-container' });
+		buttons.createEl('button', { text: 'Cancel' }).onclick = () => this.close();
+		buttons.createEl('button', { text: this.to === 'ob' ? 'Create OB Copy' : 'Create Legacy Evra Copy', cls: 'mod-cta' }).onclick = () => { this.close(); this.create(); };
+	}
+	onClose() { this.contentEl.empty(); }
+}
+
+class LegacyPromptModal extends Modal {
+	constructor(app: App, private choose: (choice: 'keep' | 'ob') => void) { super(app); }
+	onOpen() {
+		this.setTitle('Legacy Evra Timeline');
+		this.contentEl.createEl('p', { text: 'This timeline uses the legacy Evra format. Ouroboros Timelines supports this format for compatibility, but its native format is OB.' });
+		const buttons = this.contentEl.createDiv({ cls: 'modal-button-container' });
+		buttons.createEl('button', { text: 'Keep Legacy Evra' }).onclick = () => { this.close(); this.choose('keep'); };
+		buttons.createEl('button', { text: 'Create OB Copy', cls: 'mod-cta' }).onclick = () => { this.close(); this.choose('ob'); };
+	}
+	onClose() { this.contentEl.empty(); }
+}
 
 export default class OuroborosPlugin extends Plugin {
 	settings: OuroborosSettings;
@@ -71,6 +96,11 @@ export default class OuroborosPlugin extends Plugin {
 		// created files can change where links point; the vault reports every file as created while it loads, so wait for that
 		this.app.workspace.onLayoutReady(() => this.registerEvent(this.app.vault.on('create', (f) => { if (f instanceof TFile && f.extension === 'md') this.forEachView((v) => v.linksChanged()); })));
 		this.registerEvent(this.app.vault.on('rename', (f, oldPath) => { if (f instanceof TFile && f.extension === 'md') this.noteRenamed(f, oldPath); }));
+		this.registerEvent(this.app.vault.on('rename', (f, oldPath) => {
+			if (!(f instanceof TFile) || f.extension !== 'evra') return;
+			const decision = this.settings.evraPromptDecisions[oldPath];
+			if (decision) { delete this.settings.evraPromptDecisions[oldPath]; this.settings.evraPromptDecisions[f.path] = decision; void this.saveSettings(); }
+		}));
 		this.registerEvent(this.app.workspace.on('css-change', () => this.forEachView((v) => v.timeline?.cssChanged())));
 		this.registerEvent(this.app.workspace.on('active-leaf-change', (leaf) => { if (leaf && leaf.view instanceof OuroborosView) leaf.view.timeline?.focus(); }));
 	}
@@ -97,6 +127,14 @@ export default class OuroborosPlugin extends Plugin {
 		if (migrated && !data) await this.saveSettings();
 	}
 	async saveSettings() { await this.saveData(this.settings); }
+	showLegacyPrompt(file: TFile) {
+		if (!this.settings.evraCompatibility || file.extension !== 'evra' || this.settings.evraPromptDecisions[file.path]) return;
+		new LegacyPromptModal(this.app, (choice) => {
+			this.settings.evraPromptDecisions[file.path] = choice;
+			void this.saveSettings();
+			if (choice === 'ob') void this.convertTimeline(file, 'ob');
+		}).open();
+	}
 
 	private forEachView(fn: (v: OuroborosView) => void) {
 		this.app.workspace.getLeavesOfType(VIEW_TYPE).forEach((l) => { if (l.view instanceof OuroborosView) fn(l.view); });
@@ -272,10 +310,14 @@ export default class OuroborosPlugin extends Plugin {
 	async convertTimeline(file: TFile, target: 'ob' | 'evra'): Promise<TFile | null> {
 		if (target === 'evra' && !this.settings.evraCompatibility) { new Notice('Enable legacy Evra compatibility to create Evra timelines.'); return null; }
 		if (formatForExtension(file.extension) === target) return file;
+		const source = formatForExtension(file.extension);
+		if (!source) return null;
+		new ConversionModal(this.app, source, target, () => { void this.createConvertedCopy(file, source, target); }).open();
+		return null;
+	}
+
+	private async createConvertedCopy(file: TFile, source: 'ob' | 'evra', target: 'ob' | 'evra'): Promise<TFile | null> {
 		try {
-			const source = formatForExtension(file.extension);
-			if (!source) return null;
-			if (!window.confirm(`Convert this timeline into ${target === 'ob' ? 'Ouroboros Timelines (OB)' : 'Legacy Evra'}? The original file will remain unchanged.`)) return null;
 			const doc = readTimeline(JSON.parse(await this.app.vault.read(file)), file.basename, source);
 			const path = await this.uniquePath(file.parent?.path === '/' ? '' : file.parent?.path || '', file.basename, target);
 			const text = writeTimeline(doc, target);
