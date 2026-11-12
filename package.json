@@ -1,6 +1,6 @@
 {
   "name": "ouroboros-timelines",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "description": "Ouroboros Timelines for Obsidian: custom calendars, nested eras, span threads and linked notes, with native .ob files and optional legacy Evra compatibility.",
   "main": "main.js",
   "type": "module",

@@ -3,6 +3,7 @@ import { TIMELINE_COMMANDS } from './commands';
 import { renderEmbed } from './embed';
 import { emptyDoc, SAMPLE_COVER, SAMPLE_NOTES, sampleDoc } from './model';
 import { formatForExtension, readTimeline, writeTimeline } from './format';
+import { shouldShowLegacyPrompt } from './legacy-prompt';
 import { NoteCache } from './notes';
 import { DEFAULT_SETTINGS, OuroborosSettingTab, type OuroborosSettings } from './settings';
 import type { PropValue } from './sync';
@@ -25,7 +26,7 @@ class ConversionModal extends Modal {
 }
 
 class LegacyPromptModal extends Modal {
-	constructor(app: App, private choose: (choice: 'keep' | 'ob') => void) { super(app); }
+	constructor(app: App, private choose: (choice: 'keep' | 'ob') => void, private onClosed: () => void) { super(app); }
 	onOpen() {
 		this.setTitle('Legacy Evra Timeline');
 		this.contentEl.createEl('p', { text: 'This timeline uses the legacy Evra format. Ouroboros Timelines supports this format for compatibility, but its native format is OB.' });
@@ -33,7 +34,7 @@ class LegacyPromptModal extends Modal {
 		buttons.createEl('button', { text: 'Keep Legacy Evra' }).onclick = () => { this.close(); this.choose('keep'); };
 		buttons.createEl('button', { text: 'Create OB Copy', cls: 'mod-cta' }).onclick = () => { this.close(); this.choose('ob'); };
 	}
-	onClose() { this.contentEl.empty(); }
+	onClose() { this.contentEl.empty(); this.onClosed(); }
 }
 
 export default class OuroborosPlugin extends Plugin {
@@ -46,6 +47,8 @@ export default class OuroborosPlugin extends Plugin {
 	private renames: [TFile, string][] = []; // note renames waiting to be applied to closed timelines
 	private renamed = new Set<OuroborosView>(); // open views already told about them
 	private renameT = 0;
+	/** Prevent duplicate prompts when the same file is opened in multiple leaves at once. */
+	private legacyPromptPaths = new Set<string>();
 
 	async onload() {
 		await this.loadSettings();
@@ -123,17 +126,20 @@ export default class OuroborosPlugin extends Plugin {
 			}
 		} catch { /* malformed or inaccessible legacy settings are ignored safely */ }
 		this.settings = { ...DEFAULT_SETTINGS, ...(migrated || {}), ...(data || {}) };
+		if (!this.settings.evraPromptDecisions || typeof this.settings.evraPromptDecisions !== 'object' || Array.isArray(this.settings.evraPromptDecisions)) this.settings.evraPromptDecisions = {};
 		if (data?.evraCompatibility === undefined) this.settings.evraCompatibility = true;
 		if (migrated && !data) await this.saveSettings();
 	}
 	async saveSettings() { await this.saveData(this.settings); }
 	showLegacyPrompt(file: TFile) {
-		if (!this.settings.evraCompatibility || file.extension !== 'evra' || this.settings.evraPromptDecisions[file.path]) return;
+		if (!shouldShowLegacyPrompt(file.extension, this.settings.evraCompatibility, this.settings.evraPromptDecisions, file.path)) return;
+		if (this.legacyPromptPaths.has(file.path)) return;
+		this.legacyPromptPaths.add(file.path);
 		new LegacyPromptModal(this.app, (choice) => {
 			this.settings.evraPromptDecisions[file.path] = choice;
 			void this.saveSettings();
 			if (choice === 'ob') void this.convertTimeline(file, 'ob');
-		}).open();
+		}, () => this.legacyPromptPaths.delete(file.path)).open();
 	}
 
 	private forEachView(fn: (v: OuroborosView) => void) {
